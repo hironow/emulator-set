@@ -1,0 +1,106 @@
+services:
+  # Firebase Emulator Suite
+  firebase-emulator:
+    build:
+      context: ./firebase
+      dockerfile: Dockerfile
+    container_name: firebase-emulator
+    volumes:
+      - ./firebase/firebase.json:/firebase/firebase.json:ro
+      - ./firebase/firestore.rules:/firebase/firestore.rules:ro
+      - ./firebase/firestore.indexes.json:/firebase/firestore.indexes.json:ro
+      - ./firebase/storage.rules:/firebase/storage.rules:ro
+      - ./firebase/remoteconfig.template.json:/firebase/remoteconfig.template.json:ro
+      - ./firebase/data:/firebase/data
+    ports:
+      - "${AUTH_PORT:-9099}:9099"  # Auth
+      - "${FIRESTORE_PORT:-8080}:8080"  # Firestore
+      - "${PUBSUB_PORT:-8085}:8085"  # Pub/Sub
+      - "${STORAGE_PORT:-9199}:9199"  # Storage
+      - "${EVENTARC_PORT:-9299}:9299"  # Eventarc
+      - "${TASKS_PORT:-9499}:9499"  # Tasks
+      - "${FIREBASE_UI_PORT:-4000}:4000"  # UI
+    environment:
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-test-project}
+    command: >
+      sh -c "
+        if [ -d /firebase/data/firestore_export ]; then
+          echo 'Importing existing data...';
+          firebase emulators:start --project=${FIREBASE_PROJECT_ID:-test-project} --import=/firebase/data --export-on-exit=/firebase/data;
+        else
+          echo 'No existing data found, starting fresh...';
+          firebase emulators:start --project=${FIREBASE_PROJECT_ID:-test-project} --export-on-exit=/firebase/data;
+        fi
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Spanner Emulator
+  spanner-emulator:
+    image: "gcr.io/cloud-spanner-emulator/emulator"
+    pull_policy: always
+    container_name: spanner-emulator
+    ports:
+      - "${SPANNER_GRPC_PORT:-9010}:9010"  # gRPC endpoint
+      - "${SPANNER_REST_PORT:-9020}:9020"  # REST endpoint
+    # Health check using built-in TCP check
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9010 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # PostgreSQL Adapter for Spanner
+  pgadapter:
+    depends_on:
+      - spanner-emulator
+    image: "gcr.io/cloud-spanner-pg-adapter/pgadapter"
+    pull_policy: always
+    container_name: pgadapter-emulator
+    command:
+      - "-p test-project"
+      - "-i test-instance"
+      - "-r autoConfigEmulator=true"
+      - "-e spanner-emulator:9010"
+      - "-c \"\""
+      - "-x"
+    ports:
+      - "${PGADAPTER_PORT:-5432}:5432"  # PostgreSQL port
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # pgAdapter CLI
+  pgadapter-cli:
+    depends_on:
+      - pgadapter
+    build:
+      context: ./pgadapter-cli
+      dockerfile: Dockerfile
+    container_name: pgadapter-cli
+    environment:
+      - PGHOST=pgadapter
+      - PGPORT=5432
+      - PGUSER=user
+      - PGDATABASE=test-instance
+      - PGSSLMODE=disable
+    stdin_open: true
+    tty: true
+    command: ["./pgadapter-cli"]
+    profiles:
+      - cli  # Only run when explicitly requested
+
+networks:
+  default:
+    name: emulator-network

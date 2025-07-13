@@ -1,0 +1,19 @@
+# Firebase emulator data (persisted state)
+firebase/data/
+
+# Docker volumes
+.docker/
+
+# OS files
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Local environment files
+.env.local
+!.env.local.example
