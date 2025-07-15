@@ -59,6 +59,8 @@ This will start:
 
 - **Firebase Emulator Suite** with Auth, Firestore, Pub/Sub, Storage, Eventarc, and Tasks
 - **Spanner Emulator** with PostgreSQL adapter
+- **Neo4j Graph Database** with Bolt and HTTP interfaces
+- **A2A Inspector** for debugging Agent-to-Agent protocol implementations
 
 ## Ports
 
@@ -77,6 +79,15 @@ This will start:
 - `9010` - gRPC endpoint
 - `9020` - REST endpoint
 - `5432` - PostgreSQL adapter
+
+### Neo4j
+
+- `7474` - HTTP interface and browser
+- `7687` - Bolt protocol
+
+### A2A Inspector
+
+- `8081` - Web interface
 
 ### pgAdapter CLI Tool
 
@@ -131,6 +142,72 @@ pgadapter> exit
 Goodbye! 👋
 ```
 
+### Neo4j CLI Tool
+
+For interactive graph database management, use the built-in Neo4j CLI:
+
+```bash
+# Run the CLI tool
+docker compose --profile cli run --rm neo4j-cli
+```
+
+#### Features
+
+The Neo4j CLI is a custom Go-based tool that provides:
+
+- **Interactive Cypher Shell**: Execute Cypher queries with a familiar command-line interface
+- **Multi-line Support**: Write complex queries across multiple lines (queries execute when you type `;`)
+- **Table Formatting**: Query results displayed in clean, formatted tables
+- **Command Shortcuts**:
+  - `help` or `\h` - Show available commands and Cypher examples
+  - `labels` or `\l` - List all node labels in the database
+  - `schema` or `\s` - Show database schema (constraints and indexes)
+  - `clear` or `\c` - Clear the screen
+  - `exit` or `\q` - Exit the CLI
+- **Query Timing**: Each query shows execution time
+- **Rich Output**: Node and relationship visualization with properties
+
+#### Example Session
+
+```cypher
+neo4j> CREATE (n:Person {name: 'Alice', age: 30});
+✅ Query OK: 1 nodes created, 2 properties set, 1 labels added (12ms)
+
+neo4j> CREATE (n:Person {name: 'Bob', age: 25})
+    -> CREATE (m:Person {name: 'Charlie', age: 35})
+    -> CREATE (n)-[:KNOWS]->(m);
+✅ Query OK: 2 nodes created, 4 properties set, 2 labels added, 1 relationships created (8ms)
+
+neo4j> MATCH (n:Person) RETURN n.name, n.age;
+┌─────────┬───────┐
+│ N.NAME  │ N.AGE │
+├─────────┼───────┤
+│ Alice   │ 30    │
+│ Bob     │ 25    │
+│ Charlie │ 35    │
+└─────────┴───────┘
+(3 rows) Time: 5ms
+
+neo4j> labels
+📋 Labels (1):
+  - Person
+
+neo4j> exit
+Goodbye! 👋
+```
+
+### A2A Inspector Access
+
+The A2A Inspector provides a web-based interface for debugging Agent-to-Agent protocol implementations:
+
+- **Web Interface**: http://localhost:8081
+- **Features**:
+  - Connect to A2A agents
+  - View agent cards
+  - Perform specification compliance checks
+  - Live chat interface
+  - Debug console for JSON-RPC 2.0 messages
+
 ### Alternative Access Methods
 
 #### Using psql command line
@@ -148,9 +225,17 @@ docker run --rm -it --network emulator-network postgres:15 \
 - Password: (empty)
 - Database: `test-instance`
 
+#### Direct Neo4j connection
+
+- Host: `localhost`
+- Port: `7687` (Bolt) or `7474` (HTTP)
+- Username: `neo4j`
+- Password: `password`
+- Browser UI: http://localhost:7474
+
 ## Configuration
 
-Both emulators use the same project ID: `test-project`
+All emulators use the same project ID: `test-project`
 
 ### Environment Variables
 
