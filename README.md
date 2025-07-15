@@ -1,6 +1,6 @@
 # Emulator Suite
 
-This directory contains Docker configurations for running Firebase and Spanner emulators locally.
+This directory contains Docker configurations for running various database and service emulators locally, including Firebase, Spanner, Neo4j, Elasticsearch, Qdrant, and A2A Inspector.
 
 ## Quick Start
 
@@ -60,6 +60,8 @@ This will start:
 - **Firebase Emulator Suite** with Auth, Firestore, Pub/Sub, Storage, Eventarc, and Tasks
 - **Spanner Emulator** with PostgreSQL adapter
 - **Neo4j Graph Database** with Bolt and HTTP interfaces
+- **Elasticsearch** full-text search and analytics engine
+- **Qdrant** vector database for similarity search
 - **A2A Inspector** for debugging Agent-to-Agent protocol implementations
 
 ## Ports
@@ -88,6 +90,16 @@ This will start:
 ### A2A Inspector
 
 - `8081` - Web interface
+
+### Elasticsearch
+
+- `9200` - REST API
+- `9300` - Transport protocol
+
+### Qdrant
+
+- `6333` - REST API
+- `6334` - gRPC API
 
 ### pgAdapter CLI Tool
 
@@ -140,6 +152,151 @@ pgadapter> tables
 
 pgadapter> exit
 Goodbye! 👋
+```
+
+### Elasticsearch CLI Tool
+
+For interactive search and analytics operations, use the built-in Elasticsearch CLI:
+
+```bash
+# Run the CLI tool
+docker compose --profile cli run --rm elasticsearch-cli
+```
+
+#### Features
+
+The Elasticsearch CLI is a custom Go-based tool that provides:
+
+- **Interactive REST API Shell**: Execute Elasticsearch API commands with a familiar command-line interface
+- **Multi-line Support**: Write complex JSON requests across multiple lines (commands execute when you type `;`)
+- **Table Formatting**: Index information displayed in clean, formatted tables
+- **Command Shortcuts**:
+  - `help` or `\h` - Show available commands and API examples
+  - `indices` or `\l` - List all indices in the cluster
+  - `info` or `\i` - Show cluster information
+  - `\health` - Show cluster health status
+  - `clear` or `\c` - Clear the screen
+  - `exit` or `\q` - Exit the CLI
+- **Query Timing**: Each command shows execution time
+- **Full API Support**: Direct access to all Elasticsearch REST APIs
+
+#### Example Session
+
+```json
+elasticsearch> PUT /products {"settings": {"number_of_shards": 1}};
+{
+  "acknowledged": true,
+  "shards_acknowledged": true,
+  "index": "products"
+}
+
+Time: 125ms
+
+elasticsearch> POST /products/_doc {"name": "Laptop", "price": 999.99};
+{
+  "_index": "products",
+  "_id": "AbC123xyz",
+  "_version": 1,
+  "result": "created"
+}
+
+Time: 45ms
+
+elasticsearch> GET /products/_search {"query": {"match": {"name": "laptop"}}};
+{
+  "hits": {
+    "total": {"value": 1, "relation": "eq"},
+    "hits": [{
+      "_source": {"name": "Laptop", "price": 999.99}
+    }]
+  }
+}
+
+Time: 12ms
+
+elasticsearch> \indices
+┌────────┬────────┬──────────┬────────────┬────────────┬────────────┐
+│ Health │ Status │ Index    │ Docs Count │ Store Size │ Pri Shards │
+├────────┼────────┼──────────┼────────────┼────────────┼────────────┤
+│ green  │ open   │ products │ 1          │ 4.1kb      │ 1          │
+└────────┴────────┴──────────┴────────────┴────────────┴────────────┘
+
+elasticsearch> exit
+Bye!
+```
+
+### Qdrant CLI Tool
+
+For interactive vector database operations, use the built-in Qdrant CLI:
+
+```bash
+# Run the CLI tool
+docker compose --profile cli run --rm qdrant-cli
+```
+
+#### Features
+
+The Qdrant CLI is a custom Go-based tool that provides:
+
+- **Interactive REST API Shell**: Execute Qdrant API commands with a familiar command-line interface
+- **Multi-line Support**: Write complex JSON requests across multiple lines (commands execute when you type `;`)
+- **Table Formatting**: Collection information displayed in clean, formatted tables
+- **Command Shortcuts**:
+  - `help` or `\h` - Show available commands and API examples
+  - `collections` or `\l` - List all collections in the database
+  - `info` or `\i` - Show cluster information
+  - `clear` or `\c` - Clear the screen
+  - `exit` or `\q` - Exit the CLI
+- **Query Timing**: Each command shows execution time
+- **Vector Search Support**: Full support for vector similarity search operations
+
+#### Example Session
+
+```json
+qdrant> PUT /collections/products {"vectors": {"size": 4, "distance": "Cosine"}};
+{
+  "result": true,
+  "status": "ok",
+  "time": 0.045
+}
+
+Time: 45ms
+
+qdrant> PUT /collections/products/points {
+     ->   "points": [{
+     ->     "id": 1,
+     ->     "vector": [0.1, 0.2, 0.3, 0.4],
+     ->     "payload": {"name": "Product A"}
+     ->   }]
+     -> };
+{
+  "result": {"operation_id": 0, "status": "completed"},
+  "status": "ok"
+}
+
+Time: 15ms
+
+qdrant> POST /collections/products/points/search {"vector": [0.1, 0.2, 0.3, 0.4], "limit": 5};
+{
+  "result": [{
+    "id": 1,
+    "score": 1.0,
+    "payload": {"name": "Product A"}
+  }],
+  "status": "ok"
+}
+
+Time: 8ms
+
+qdrant> \collections
+┌──────────┬───────────────┬──────────────┬─────────────────────────┐
+│ Name     │ Vectors Count │ Points Count │ Config                  │
+├──────────┼───────────────┼──────────────┼─────────────────────────┤
+│ products │ 1             │ 1            │ size=4, distance=Cosine │
+└──────────┴───────────────┴──────────────┴─────────────────────────┘
+
+qdrant> exit
+Bye!
 ```
 
 ### Neo4j CLI Tool
@@ -232,6 +389,20 @@ docker run --rm -it --network emulator-network postgres:15 \
 - Username: `neo4j`
 - Password: `password`
 - Browser UI: http://localhost:7474
+
+#### Direct Elasticsearch connection
+
+- Host: `localhost`
+- Port: `9200`
+- Username: (none)
+- Password: (none)
+- Kibana (if added): http://localhost:5601
+
+#### Direct Qdrant connection
+
+- Host: `localhost`
+- Port: `6333` (REST) or `6334` (gRPC)
+- Dashboard: http://localhost:6333/dashboard
 
 ## Configuration
 

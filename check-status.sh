@@ -27,7 +27,7 @@ echo ""
 
 # Check if emulator containers are running
 is_emulator_running() {
-    docker ps --format "{{.Names}}" 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator)" > /dev/null 2>&1
+    docker ps --format "{{.Names}}" 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector)" > /dev/null 2>&1
 }
 
 # Check if any ports are in use
@@ -79,11 +79,31 @@ check_port 6334 "Qdrant gRPC API" "qdrant-emulator"
 
 echo ""
 
+# Neo4j ports
+echo "Neo4j Emulator Ports:"
+check_port 7474 "Neo4j HTTP" "neo4j-emulator"
+check_port 7687 "Neo4j Bolt" "neo4j-emulator"
+
+echo ""
+
+# Elasticsearch ports
+echo "Elasticsearch Emulator Ports:"
+check_port 9200 "Elasticsearch REST" "elasticsearch-emulator"
+check_port 9300 "Elasticsearch Transport" "elasticsearch-emulator"
+
+echo ""
+
+# A2A Inspector port
+echo "A2A Inspector Port:"
+check_port 8081 "A2A Inspector" "a2a-inspector"
+
+echo ""
+
 # Check Docker containers
 echo "Docker Containers:"
 if is_emulator_running; then
     echo -e "${GREEN}📦 Emulator containers are running:${NC}"
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|NAMES)"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector|NAMES)"
     EMULATORS_RUNNING=true
 else
     echo -e "${YELLOW}ℹ️  No emulator containers are running${NC}"
@@ -108,7 +128,7 @@ check_service_port() {
 }
 
 # Check if any containers are running first
-if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator)" > /dev/null 2>&1; then
+if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector)" > /dev/null 2>&1; then
     # Firebase UI health check (check if port is listening)
     if check_service_port 4000 "Firebase UI"; then
         # Try to fetch the page content
@@ -141,6 +161,18 @@ if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapte
     
     if check_service_port 6333 "Qdrant REST API"; then
         echo -e "${GREEN}✅ Qdrant is running on port 6333${NC}"
+    fi
+    
+    if check_service_port 7474 "Neo4j HTTP"; then
+        echo -e "${GREEN}✅ Neo4j is running on port 7474${NC}"
+    fi
+    
+    if check_service_port 9200 "Elasticsearch REST"; then
+        echo -e "${GREEN}✅ Elasticsearch is running on port 9200${NC}"
+    fi
+    
+    if check_service_port 8081 "A2A Inspector"; then
+        echo -e "${GREEN}✅ A2A Inspector is running on port 8081${NC}"
     fi
 else
     echo -e "${YELLOW}ℹ️  No emulator containers detected - health checks skipped${NC}"
@@ -212,7 +244,10 @@ if [ "$EMULATORS_RUNNING" = true ]; then
     echo "  - Firestore: localhost:8080"
     echo "  - Auth: localhost:9099"
     echo "  - pgAdapter: localhost:5432"
-    echo "  - Qdrant: localhost:6333"
+    echo "  - Qdrant: http://localhost:6333"
+    echo "  - Neo4j: http://localhost:7474"
+    echo "  - Elasticsearch: http://localhost:9200"
+    echo "  - A2A Inspector: http://localhost:8081"
 elif [ -z "$FIRESTORE_EMULATOR_HOST" ] && [ -z "$FIREBASE_AUTH_EMULATOR_HOST" ] && [ -z "$SPANNER_EMULATOR_HOST" ]; then
     echo -e "${YELLOW}⚠️  No emulator host variables are set${NC}"
     echo ""

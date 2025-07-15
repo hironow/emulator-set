@@ -198,12 +198,51 @@ services:
     profiles:
       - cli  # Only run when explicitly requested
 
+  # Elasticsearch
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: elasticsearch-emulator
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"  # REST API
+      - "${ELASTICSEARCH_TRANSPORT_PORT:-9300}:9300"  # Transport
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # Elasticsearch CLI
+  elasticsearch-cli:
+    depends_on:
+      - elasticsearch
+    build:
+      context: ./elasticsearch-cli
+      dockerfile: Dockerfile
+    container_name: elasticsearch-cli
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+    stdin_open: true
+    tty: true
+    command: ["./elasticsearch-cli"]
+    profiles:
+      - cli  # Only run when explicitly requested
+
 volumes:
   neo4j_data:
   neo4j_logs:
   neo4j_import:
   neo4j_plugins:
   qdrant_data:
+  elasticsearch_data:
 
 networks:
   default:
