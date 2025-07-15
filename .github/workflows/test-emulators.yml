@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest docker requests pyyaml
+        pip install -r requirements.txt
     
     - name: Start Docker Compose services
       run: docker compose up -d
