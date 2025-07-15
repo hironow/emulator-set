@@ -162,11 +162,48 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-emulator
+    ports:
+      - "${QDRANT_REST_PORT:-6333}:6333"  # REST API
+      - "${QDRANT_GRPC_PORT:-6334}:6334"  # gRPC API
+    environment:
+      - QDRANT__LOG_LEVEL=INFO
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Qdrant CLI
+  qdrant-cli:
+    depends_on:
+      - qdrant
+    build:
+      context: ./qdrant-cli
+      dockerfile: Dockerfile
+    container_name: qdrant-cli
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    stdin_open: true
+    tty: true
+    command: ["./qdrant-cli"]
+    profiles:
+      - cli  # Only run when explicitly requested
+
 volumes:
   neo4j_data:
   neo4j_logs:
   neo4j_import:
   neo4j_plugins:
+  qdrant_data:
 
 networks:
   default:

@@ -27,7 +27,7 @@ echo ""
 
 # Check if emulator containers are running
 is_emulator_running() {
-    docker ps --format "{{.Names}}" 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter)" > /dev/null 2>&1
+    docker ps --format "{{.Names}}" 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator)" > /dev/null 2>&1
 }
 
 # Check if any ports are in use
@@ -72,11 +72,18 @@ check_port 5432 "PostgreSQL Adapter" "pgadapter"
 
 echo ""
 
+# Qdrant ports
+echo "Qdrant Emulator Ports:"
+check_port 6333 "Qdrant REST API" "qdrant-emulator"
+check_port 6334 "Qdrant gRPC API" "qdrant-emulator"
+
+echo ""
+
 # Check Docker containers
 echo "Docker Containers:"
 if is_emulator_running; then
     echo -e "${GREEN}📦 Emulator containers are running:${NC}"
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(firebase-emulator|spanner-emulator|pgadapter|NAMES)"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|NAMES)"
     EMULATORS_RUNNING=true
 else
     echo -e "${YELLOW}ℹ️  No emulator containers are running${NC}"
@@ -101,7 +108,7 @@ check_service_port() {
 }
 
 # Check if any containers are running first
-if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter)" > /dev/null 2>&1; then
+if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator)" > /dev/null 2>&1; then
     # Firebase UI health check (check if port is listening)
     if check_service_port 4000 "Firebase UI"; then
         # Try to fetch the page content
@@ -130,6 +137,10 @@ if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapte
     
     if check_service_port 5432 "PostgreSQL/pgAdapter"; then
         echo -e "${GREEN}✅ pgAdapter is running on port 5432${NC}"
+    fi
+    
+    if check_service_port 6333 "Qdrant REST API"; then
+        echo -e "${GREEN}✅ Qdrant is running on port 6333${NC}"
     fi
 else
     echo -e "${YELLOW}ℹ️  No emulator containers detected - health checks skipped${NC}"
@@ -201,6 +212,7 @@ if [ "$EMULATORS_RUNNING" = true ]; then
     echo "  - Firestore: localhost:8080"
     echo "  - Auth: localhost:9099"
     echo "  - pgAdapter: localhost:5432"
+    echo "  - Qdrant: localhost:6333"
 elif [ -z "$FIRESTORE_EMULATOR_HOST" ] && [ -z "$FIREBASE_AUTH_EMULATOR_HOST" ] && [ -z "$SPANNER_EMULATOR_HOST" ]; then
     echo -e "${YELLOW}⚠️  No emulator host variables are set${NC}"
     echo ""
