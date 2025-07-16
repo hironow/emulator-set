@@ -16,10 +16,10 @@ Interactive command-line interface for Neo4j in the emulator environment.
 
 ```bash
 # Start Neo4j and run the CLI
-docker-compose --profile cli run --rm neo4j-cli
+docker compose --profile cli run --rm neo4j-cli
 
 # Or, if Neo4j is already running
-docker-compose run --rm neo4j-cli
+docker compose run --rm neo4j-cli
 ```
 
 ### Available Commands
