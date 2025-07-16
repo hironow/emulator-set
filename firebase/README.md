@@ -7,7 +7,7 @@ This directory contains the Firebase emulator configuration for local developmen
 1. Start the Firebase emulators:
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. The following services will be available:
@@ -22,7 +22,7 @@ This directory contains the Firebase emulator configuration for local developmen
 3. To stop the emulators:
 
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 ## Configuration
