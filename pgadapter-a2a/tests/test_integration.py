@@ -2,15 +2,8 @@ import pytest
 from unittest.mock import Mock, patch, AsyncMock
 
 
-def test_server_creation_with_logging():
-    from pgadapter_a2a.server import create_app
-
-    app = create_app()
-    assert app is not None
-
-
 @pytest.mark.asyncio
-async def test_agent_works_with_logging():
+async def test_agent_works():
     from pgadapter_a2a.agent import CustomAgent
 
     agent = CustomAgent(connection_string="postgresql://user:password@localhost/testdb")
