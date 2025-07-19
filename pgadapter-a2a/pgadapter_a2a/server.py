@@ -9,18 +9,16 @@ from fasta2a.broker import InMemoryBroker
 from fasta2a.schema import Artifact, Message, TaskIdParams, TaskSendParams, TextPart
 from fasta2a.storage import InMemoryStorage
 
-from .skills import DatabaseAgentSkill
-from .logger import setup_logger
+from .skills import CustomAgentSkill
 
 Context = list[Message]
 """The shape of the context you store in the storage."""
 
 
-class DatabaseWorker(Worker[Context]):
-    def __init__(self, *args, db_skill: DatabaseAgentSkill, **kwargs):
+class CustomWorker(Worker[Context]):
+    def __init__(self, *args, db_skill: CustomAgentSkill, **kwargs):
         super().__init__(*args, **kwargs)
         self.db_skill = db_skill
-        self.logger = setup_logger("pgadapter-a2a.worker")
 
     async def run_task(self, params: TaskSendParams) -> None:
         task = await self.storage.load_task(params["id"])
@@ -70,7 +68,6 @@ class DatabaseWorker(Worker[Context]):
                     message_id=str(uuid.uuid4()),
                 )
             except Exception as e:
-                self.logger.error(f"Error executing query: {e}")
                 message = Message(
                     role="agent",
                     parts=[TextPart(text=f"Error: {str(e)}", kind="text")],
@@ -109,10 +106,10 @@ def create_app():
     connection_string = os.getenv("DATABASE_URL", "postgresql://localhost/postgres")
 
     # Create and register the database agent skill
-    db_skill = DatabaseAgentSkill(connection_string)
+    db_skill = CustomAgentSkill(connection_string)
 
     # Create worker
-    worker = DatabaseWorker(storage=storage, broker=broker, db_skill=db_skill)
+    worker = CustomWorker(storage=storage, broker=broker, db_skill=db_skill)
 
     @asynccontextmanager
     async def lifespan(app: FastA2A) -> AsyncIterator[None]:
@@ -121,7 +118,15 @@ def create_app():
                 yield
 
     # Create the A2A app with lifespan
-    app = FastA2A(storage=storage, broker=broker, lifespan=lifespan)
+    app = FastA2A(
+        name="pgadapter-a2a",
+        description="A2A application for processing natural language queries to SQL(Spanner with pgadapter)",
+        version="0.0.1",
+        debug=True,
+        storage=storage,
+        broker=broker,
+        lifespan=lifespan,
+    )
 
     # Store references on the app for later use
     app.state.db_skill = db_skill

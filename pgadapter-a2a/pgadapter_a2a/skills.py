@@ -1,11 +1,11 @@
 from typing import Any, Dict
-from .agent import DatabaseAgent
+from .agent import CustomAgent
 
 
-class DatabaseAgentSkill:
+class CustomAgentSkill:
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
-        self.agent = DatabaseAgent(connection_string)
+        self.agent = CustomAgent(connection_string)
 
     async def execute(self, task_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
         query = input_data.get("query")

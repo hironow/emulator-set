@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch, AsyncMock
 
 @pytest.mark.asyncio
 async def test_database_agent_skill_can_process_a2a_messages():
-    from pgadapter_a2a.skills import DatabaseAgentSkill
+    from pgadapter_a2a.skills import CustomAgentSkill
 
-    skill = DatabaseAgentSkill(
+    skill = CustomAgentSkill(
         connection_string="postgresql://user:password@localhost/testdb"
     )
 

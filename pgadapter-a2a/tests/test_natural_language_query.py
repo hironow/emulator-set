@@ -4,9 +4,9 @@ from unittest.mock import Mock, patch
 
 @pytest.mark.asyncio
 async def test_agent_can_process_natural_language_query():
-    from pgadapter_a2a.agent import DatabaseAgent
+    from pgadapter_a2a.agent import CustomAgent
 
-    agent = DatabaseAgent()
+    agent = CustomAgent()
 
     with patch("litellm.acompletion") as mock_completion:
         mock_completion.return_value = Mock(

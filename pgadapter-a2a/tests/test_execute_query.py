@@ -4,11 +4,9 @@ from unittest.mock import patch, AsyncMock
 
 @pytest.mark.asyncio
 async def test_agent_can_execute_query_and_return_results():
-    from pgadapter_a2a.agent import DatabaseAgent
+    from pgadapter_a2a.agent import CustomAgent
 
-    agent = DatabaseAgent(
-        connection_string="postgresql://user:password@localhost/testdb"
-    )
+    agent = CustomAgent(connection_string="postgresql://user:password@localhost/testdb")
 
     with patch("pgadapter_a2a.agent.asyncpg.connect") as mock_connect:
         mock_connection = AsyncMock()

@@ -4,11 +4,9 @@ from unittest.mock import Mock, patch, AsyncMock
 
 @pytest.mark.asyncio
 async def test_agent_processes_natural_language_and_executes_query():
-    from pgadapter_a2a.agent import DatabaseAgent
+    from pgadapter_a2a.agent import CustomAgent
 
-    agent = DatabaseAgent(
-        connection_string="postgresql://user:password@localhost/testdb"
-    )
+    agent = CustomAgent(connection_string="postgresql://user:password@localhost/testdb")
 
     with patch("litellm.acompletion") as mock_completion:
         mock_completion.return_value = Mock(
