@@ -1,6 +1,9 @@
 import asyncpg
 import litellm
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class DatabaseAgent:
