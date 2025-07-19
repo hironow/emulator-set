@@ -1,5 +1,3 @@
-
-
 def test_agent_can_connect_to_database():
     from pgadapter_a2a.agent import DatabaseAgent
 
