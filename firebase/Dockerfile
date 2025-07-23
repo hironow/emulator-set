@@ -24,7 +24,7 @@ COPY remoteconfig.template.json ./
 RUN mkdir -p data
 
 # Expose emulator ports
-EXPOSE 9099 8080 8085 9199 9299 9499 4000
+EXPOSE 9099 8080 9399 9199 9299 9499 4000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

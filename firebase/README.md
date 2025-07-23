@@ -14,7 +14,7 @@ This directory contains the Firebase emulator configuration for local developmen
    - Auth: <http://localhost:9099>
    - Firestore: <http://localhost:8080>
    - Storage: <http://localhost:9199>
-   - Pub/Sub: <http://localhost:8085>
+   - Pub/Sub: <http://localhost:9399>
    - Eventarc: <http://localhost:9299>
    - Cloud Tasks: <http://localhost:9499>
    - Emulator UI: <http://localhost:4000>
@@ -42,7 +42,7 @@ The application should use these environment variables to connect to the emulato
 export FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
 export FIRESTORE_EMULATOR_HOST=localhost:8080
 export FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
-export PUBSUB_EMULATOR_HOST=localhost:8085
+export PUBSUB_EMULATOR_HOST=localhost:9399
 export CLOUD_TASKS_EMULATOR_HOST=localhost:9499
 export EVENTARC_EMULATOR_HOST=localhost:9299
 ```

@@ -13,7 +13,7 @@ services:
     ports:
       - "9099:9099"  # Auth
       - "8080:8080"  # Firestore
-      - "8085:8085"  # Pub/Sub
+      - "9399:9399"  # Pub/Sub
       - "9199:9199"  # Storage
       - "9299:9299"  # Eventarc
       - "9499:9499"  # Tasks

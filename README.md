@@ -71,7 +71,7 @@ This will start:
 - `4000` - Emulator UI
 - `8080` - Firestore
 - `9099` - Authentication
-- `8085` - Pub/Sub
+- `9399` - Pub/Sub
 - `9199` - Storage
 - `9299` - Eventarc
 - `9499` - Tasks
@@ -438,7 +438,7 @@ export FIREBASE_PROJECT_ID=test-project
 export FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
 export FIRESTORE_EMULATOR_HOST=localhost:8080
 export FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
-export PUBSUB_EMULATOR_HOST=localhost:8085
+export PUBSUB_EMULATOR_HOST=localhost:9399
 
 # Spanner Emulator host
 export SPANNER_EMULATOR_HOST=localhost:9010
@@ -472,7 +472,7 @@ When running your application in Docker alongside the emulators, use the contain
 export FIREBASE_AUTH_EMULATOR_HOST=firebase:9099
 export FIRESTORE_EMULATOR_HOST=firebase:8080
 export FIREBASE_STORAGE_EMULATOR_HOST=firebase:9199
-export PUBSUB_EMULATOR_HOST=firebase:8085
+export PUBSUB_EMULATOR_HOST=firebase:9399
 export SPANNER_EMULATOR_HOST=spanner:9010
 ```
 
@@ -488,7 +488,7 @@ FIREBASE_PROJECT_ID=test-project
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
 FIRESTORE_EMULATOR_HOST=localhost:8080
 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
-PUBSUB_EMULATOR_HOST=localhost:8085
+PUBSUB_EMULATOR_HOST=localhost:9399
 SPANNER_EMULATOR_HOST=localhost:9010
 GOOGLE_APPLICATION_CREDENTIALS=
 ```
