@@ -357,7 +357,9 @@ Goodbye! 👋
 
 The A2A Inspector provides a web-based interface for debugging Agent-to-Agent protocol implementations:
 
-- **Web Interface**: http://localhost:8081
+When entering `localhost` in the web interface, it connects from Docker to localhost, so you need to use `host.docker.internal`.
+
+- **Web Interface**: <http://localhost:8081>
 - **Features**:
   - Connect to A2A agents
   - View agent cards
@@ -388,7 +390,7 @@ docker run --rm -it --network emulator-network postgres:15 \
 - Port: `7687` (Bolt) or `7474` (HTTP)
 - Username: `neo4j`
 - Password: `password`
-- Browser UI: http://localhost:7474
+- Browser UI: <http://localhost:7474>
 
 #### Direct Elasticsearch connection
 
@@ -396,13 +398,13 @@ docker run --rm -it --network emulator-network postgres:15 \
 - Port: `9200`
 - Username: (none)
 - Password: (none)
-- Kibana (if added): http://localhost:5601
+- Kibana (if added): <http://localhost:5601>
 
 #### Direct Qdrant connection
 
 - Host: `localhost`
 - Port: `6333` (REST) or `6334` (gRPC)
-- Dashboard: http://localhost:6333/dashboard
+- Dashboard: <http://localhost:6333/dashboard>
 
 ## Configuration
 
