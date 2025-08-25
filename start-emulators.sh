@@ -48,19 +48,31 @@ echo ""
 echo "Checking port availability..."
 ./check-status.sh | grep -E "(Port|already in use)"
 
-# Ask user to continue if ports are in use
-if ./check-status.sh | grep -q "already in use"; then
-    echo ""
-    echo -e "${YELLOW}⚠️  Some ports are already in use${NC}"
-    read -p "Do you want to stop existing containers and continue? (y/N) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "Stopping existing containers..."
+# Check if we're in CI environment
+if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ]; then
+    echo "Running in CI environment - non-interactive mode"
+    # In CI, always stop existing containers if ports are in use
+    if ./check-status.sh | grep -q "already in use"; then
+        echo ""
+        echo -e "${YELLOW}⚠️  Some ports are already in use - stopping existing containers${NC}"
         docker compose down
         sleep 2
-    else
-        echo "Exiting..."
-        exit 1
+    fi
+else
+    # Ask user to continue if ports are in use (interactive mode)
+    if ./check-status.sh | grep -q "already in use"; then
+        echo ""
+        echo -e "${YELLOW}⚠️  Some ports are already in use${NC}"
+        read -p "Do you want to stop existing containers and continue? (y/N) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "Stopping existing containers..."
+            docker compose down
+            sleep 2
+        else
+            echo "Exiting..."
+            exit 1
+        fi
     fi
 fi
 
@@ -74,10 +86,19 @@ echo ""
 echo "Waiting for services to start..."
 sleep 5
 
-# Follow logs
+# Follow logs (only in interactive mode)
 echo ""
 echo -e "${GREEN}✅ Emulators are starting!${NC}"
 echo ""
-echo "Following logs (press Ctrl+C to stop following)..."
-echo "----------------------------------------"
-docker compose logs -f
+
+if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ]; then
+    echo "CI environment detected - not following logs"
+    echo "Containers are running in background"
+    echo ""
+    # Show brief status
+    docker compose ps
+else
+    echo "Following logs (press Ctrl+C to stop following)..."
+    echo "----------------------------------------"
+    docker compose logs -f
+fi
