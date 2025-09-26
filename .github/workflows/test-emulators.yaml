@@ -29,7 +29,55 @@ jobs:
       run: docker compose up -d
     
     - name: Wait for services to be ready
-      run: sleep 30
+      shell: bash
+      run: |
+        set -e
+        echo "Waiting for emulator services..."
+
+        wait_http() {
+          local name="$1"; shift
+          local url="$1"; shift
+          local max=60
+          echo "- Waiting for $name at $url"
+          for i in $(seq 1 $max); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
+            if [[ "$code" =~ ^2|3 ]]; then
+              echo "  $name is ready (HTTP $code)"
+              return 0
+            fi
+            sleep 2
+          done
+          echo "  ERROR: $name not ready in time"
+          return 1
+        }
+
+        wait_tcp() {
+          local name="$1"; shift
+          local host="$1"; shift
+          local port="$1"; shift
+          local max=60
+          echo "- Waiting for $name at $host:$port"
+          for i in $(seq 1 $max); do
+            if (echo > /dev/tcp/$host/$port) >/dev/null 2>&1; then
+              echo "  $name is ready"
+              return 0
+            fi
+            sleep 2
+          done
+          echo "  ERROR: $name not ready in time"
+          return 1
+        }
+
+        # HTTP-based services
+        wait_http "Firebase UI" "http://localhost:4000"
+        wait_http "Elasticsearch" "http://localhost:9200/_cluster/health"
+        wait_http "Qdrant" "http://localhost:6333/healthz"
+        wait_http "Neo4j HTTP" "http://localhost:7474"
+        wait_http "A2A Inspector" "http://localhost:8081"
+
+        # TCP-only checks
+        wait_tcp "Spanner gRPC" localhost 9010
+        wait_tcp "pgAdapter" localhost 5432
     
     - name: Run emulator tests
       run: uv run pytest tests/ -v

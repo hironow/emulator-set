@@ -81,10 +81,54 @@ echo ""
 echo "Starting Docker containers..."
 docker compose up -d
 
-# Wait for services to be ready
+# Wait for services to be ready with simple polling
 echo ""
-echo "Waiting for services to start..."
-sleep 5
+echo "Waiting for services to start (simple polling)..."
+
+# Functions
+wait_http() {
+  local name="$1"; shift
+  local url="$1"; shift
+  local max=${3:-60}
+  echo "- Waiting for $name at $url"
+  for i in $(seq 1 "$max"); do
+    code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
+    if [[ "$code" =~ ^2|3 ]]; then
+      echo "  $name is ready (HTTP $code)"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "  ERROR: $name not ready in time"
+  return 1
+}
+
+wait_tcp() {
+  local name="$1"; shift
+  local host="$1"; shift
+  local port="$1"; shift
+  local max=${4:-60}
+  echo "- Waiting for $name at $host:$port"
+  for i in $(seq 1 "$max"); do
+    if (echo > /dev/tcp/$host/$port) >/dev/null 2>&1; then
+      echo "  $name is ready"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "  ERROR: $name not ready in time"
+  return 1
+}
+
+# Poll key services
+wait_http "Firebase UI" "http://localhost:4000"
+wait_http "Elasticsearch" "http://localhost:9200/_cluster/health"
+wait_http "Qdrant" "http://localhost:6333/healthz"
+wait_http "Neo4j HTTP" "http://localhost:7474"
+wait_http "A2A Inspector" "http://localhost:8081"
+
+wait_tcp "Spanner gRPC" localhost 9010
+wait_tcp "pgAdapter" localhost 5432
 
 # Follow logs (only in interactive mode)
 echo ""

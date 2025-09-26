@@ -6,7 +6,7 @@ def test_github_actions_workflow_exists():
     """Test that GitHub Actions workflow file exists."""
     # Get the parent directory of the tests directory
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yml")
+    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yaml")
     assert os.path.exists(workflow_path), (
         f"GitHub Actions workflow file not found at {workflow_path}"
     )
@@ -15,7 +15,7 @@ def test_github_actions_workflow_exists():
 def test_github_actions_workflow_has_docker_compose_steps():
     """Test that workflow contains necessary Docker Compose steps."""
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yml")
+    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yaml")
 
     with open(workflow_path, "r") as f:
         workflow = yaml.safe_load(f)
@@ -42,7 +42,7 @@ def test_github_actions_workflow_has_docker_compose_steps():
 def test_github_actions_workflow_runs_pytest():
     """Test that workflow runs pytest on test files."""
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yml")
+    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yaml")
 
     with open(workflow_path, "r") as f:
         workflow = yaml.safe_load(f)
@@ -64,7 +64,7 @@ def test_github_actions_workflow_runs_pytest():
 def test_github_actions_uses_latest_versions():
     """Test that GitHub Actions workflow uses the latest versions of actions."""
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yml")
+    workflow_path = os.path.join(parent_dir, ".github/workflows/test-emulators.yaml")
 
     with open(workflow_path, "r") as f:
         workflow = yaml.safe_load(f)

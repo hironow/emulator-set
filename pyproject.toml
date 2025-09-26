@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["tests"]
+packages = []
 
 
 # [tool.uv.workspace]
