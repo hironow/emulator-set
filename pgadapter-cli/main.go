@@ -123,7 +123,7 @@ func printHelp() {
 	fmt.Println("  tables, \\dt  - List all tables")
 	fmt.Println("  clear, \\c    - Clear screen")
 	fmt.Println("  exit, \\q     - Exit the CLI")
-	fmt.Println("\n💡 SQL Examples:")
+	fmt.Println("\n💡 SQL Examples (Spanner types):")
 	fmt.Println("  CREATE TABLE users (")
 	fmt.Println("    id INT64 NOT NULL,")
 	fmt.Println("    name STRING(100),")
@@ -136,6 +136,25 @@ func printHelp() {
 	fmt.Println()
 	fmt.Println("  SELECT * FROM users;")
 	fmt.Println()
+
+	fmt.Println("🔁 PostgreSQL dialect on pgAdapter (recommended):")
+	fmt.Println("  CREATE TABLE users (")
+	fmt.Println("    id BIGINT PRIMARY KEY,")
+	fmt.Println("    name VARCHAR(100),")
+	fmt.Println("    email VARCHAR(100),")
+	fmt.Println("    created_at TIMESTAMPTZ")
+	fmt.Println("  );")
+	fmt.Println()
+	fmt.Println("  INSERT INTO users (id, name, email, created_at)")
+	fmt.Println("  VALUES (1, 'John Doe', 'john@example.com', CURRENT_TIMESTAMP);")
+	fmt.Println()
+	fmt.Println("  SELECT * FROM users;")
+	fmt.Println()
+
+	fmt.Println("⚠️  pgAdapter/Spanner notes:")
+	fmt.Println("  - Every table must have a PRIMARY KEY")
+	fmt.Println("  - SERIAL/SEQUENCE are generally unsupported")
+	fmt.Println("  - Some PostgreSQL features may be limited vs stock PostgreSQL")
 }
 
 func showTables(ctx context.Context, db *sql.DB) {

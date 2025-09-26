@@ -1,3 +1,10 @@
+"""Smoke‑level E2E for each CLI (help/exit/info).
+
+Fast connectivity checks to ensure the CLIs start, connect, and respond to
+basic commands. Deeper scenarios live in test_cli_crud_e2e.py and
+test_cli_features_e2e.py.
+"""
+
 import io
 import os
 import pytest

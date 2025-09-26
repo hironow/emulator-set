@@ -99,6 +99,12 @@ Coverage highlights
 - Spanner / pgAdapter: コンテナ稼働と TCP ポート確認
 - Neo4j / Elasticsearch / Qdrant: ヘルス確認
 
+Test groups
+- Smoke: CLI help/info/exit sanity checks
+- CRUD: End‑to‑end create/read flows per CLI (with cleanup)
+- Features: Aggregations, relationships, filtered vector search
+- Negative: pgAdapter/Spanner incompat tests (e.g., missing PK, sequence)
+
 About skipped tests（想定内）
 
 - Pub/Sub REST: 一部のエミュレータビルド/環境では、HTTP/2 RST_STREAM の 500 を返すことがあります。
@@ -228,3 +234,25 @@ GitHub Actions workflow `.github/workflows/test-emulators.yaml`:
 - A test validates the workflow file exists and uses up‑to‑date action versions
 
 Use `just gh-validate` locally to sanity‑check workflow files with `wrkflw`.
+
+## pgAdapter / Spanner Dialect Differences
+
+When using pgAdapter (PostgreSQL protocol) on top of Spanner, prefer PostgreSQL
+type names and be aware of some limitations. Quick mapping:
+
+| Concept                     | Spanner (GoogleSQL)         | PostgreSQL (via pgAdapter) |
+|----------------------------|-----------------------------|-----------------------------|
+| Integer                    | `INT64`                     | `BIGINT`                    |
+| String (fixed length)      | `STRING(n)`                 | `VARCHAR(n)`                |
+| String (unbounded)         | `STRING`                    | `TEXT`                      |
+| Floating point             | `FLOAT64`                   | `DOUBLE PRECISION`          |
+| Exact decimal              | `NUMERIC`                   | `NUMERIC`                   |
+| Timestamp                  | `TIMESTAMP`                 | `TIMESTAMPTZ`               |
+| Primary key                | `PRIMARY KEY (id)`          | `id BIGINT PRIMARY KEY` or table-level PK |
+
+Notes
+
+- Every table must have a PRIMARY KEY (Spanner requirement).
+- `SERIAL` / `SEQUENCE` are generally unsupported.
+- Some PostgreSQL features may be limited compared to stock PostgreSQL.
+- Keep DDL simple (explicit PK, basic types) for best compatibility.
