@@ -1,7 +1,7 @@
 import pytest
 import docker
 import time
-import requests
+import httpx
 
 
 def test_firebase_container_starts():
@@ -23,10 +23,10 @@ def test_firebase_container_starts():
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = requests.get("http://localhost:4000", timeout=1)
+            response = httpx.get("http://localhost:4000", timeout=1)
             if response.status_code == 200:
                 break
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             if i == max_retries - 1:
                 pytest.fail("Firebase UI is not accessible at localhost:4000")
             time.sleep(1)

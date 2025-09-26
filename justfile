@@ -14,11 +14,17 @@ update:
     uv sync
     @echo 'Updated.'
 
-# Run pytest (uses uv)
+# Test pytest
 test path='tests/' opts='-v':
-    @echo '🧪 Running tests via uv: pytest' '{{path}}' '{{opts}}'; \
-    uv run pytest {{path}} {{opts}}; \
-    @echo '✅ Tests passed.'
+    @echo '🧪 Running tests via uv: pytest' '{{path}}' '{{opts}}'
+    uv run pytest '{{path}}' '{{opts}}'
+    @echo '✅ Tests finished.'
+
+# Format ruff
+format path='tests/':
+    @echo '🔧 Formatting code with ruff...'
+    uv run ruff format '{{path}}'
+    @echo '✅ Code formatted.'
 
 
 # ---- WRKFLW helpers ----

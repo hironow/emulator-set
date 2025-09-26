@@ -1,7 +1,7 @@
 import pytest
 import docker
 import time
-import requests
+import httpx
 
 
 def test_qdrant_container_starts():
@@ -23,16 +23,16 @@ def test_qdrant_container_starts():
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = requests.get("http://localhost:6333/healthz", timeout=1)
+            response = httpx.get("http://localhost:6333/healthz", timeout=1)
             if response.status_code == 200:
                 break
-        except requests.exceptions.RequestException:
+        except httpx.HTTPError:
             if i == max_retries - 1:
                 pytest.fail("Qdrant REST API is not accessible at localhost:6333")
             time.sleep(1)
 
     # Verify Qdrant is ready
-    response = requests.get("http://localhost:6333/readyz", timeout=5)
+    response = httpx.get("http://localhost:6333/readyz", timeout=5)
     assert response.status_code == 200, (
         f"Qdrant is not ready, status code: {response.status_code}"
     )
