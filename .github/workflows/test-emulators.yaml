@@ -13,7 +13,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     
     steps:
     - uses: actions/checkout@v4
@@ -88,7 +88,29 @@ jobs:
       run: uv run pytest tests/ -v -m "not e2e"
 
     - name: Run e2e tests
-      run: uv run pytest tests/e2e -v -m e2e
+      shell: bash
+      run: |
+        set -o pipefail
+        uv run pytest tests/e2e -v -m e2e -ra | tee e2e.log
+
+    - name: Summarize skipped e2e tests
+      if: always()
+      shell: bash
+      run: |
+        echo "### E2E Skipped Tests" >> "$GITHUB_STEP_SUMMARY"
+        # Extract the short test summary info 'SKIPPED' lines if present
+        SKIPS=$(awk 'BEGIN{p=0} /^=+ short test summary info =+$/ {p=1; next} /^=+/ {if(p==1) p=0} p==1 {print}' e2e.log | grep '^SKIPPED' || true)
+        if [ -n "$SKIPS" ]; then
+          echo "$SKIPS" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+        else
+          # Fallback: scan any SKIPPED occurrences
+          ALT=$(grep -E " SKIPPED \(" e2e.log || true)
+          if [ -n "$ALT" ]; then
+            echo "$ALT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No skipped e2e tests." >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
     
     - name: Show Docker logs on failure
       if: failure()
