@@ -1,3 +1,11 @@
+"""Cloud Tasks functional test (REST).
+
+Why this may be skipped:
+- The Cloud Tasks emulator often does not implement the full REST surface.
+  When the discovery check fails (or endpoints close connections), we skip
+  the functional test instead of failing the suite.
+"""
+
 import uuid
 import httpx
 import pytest

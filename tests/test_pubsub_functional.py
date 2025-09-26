@@ -1,3 +1,13 @@
+"""Pub/Sub functional test via REST.
+
+Why this may be skipped:
+- The emulator's REST endpoints can return HTTP/2 RST_STREAM (500) depending on
+  platform/version even when the service is healthy. To keep the suite stable,
+  we skip when REST calls don't return expected codes.
+- Some emulator builds require HTTP/2. If `h2` isn't installed (httpx[http2]),
+  we skip rather than fail the whole suite.
+"""
+
 import base64
 import uuid
 import pytest

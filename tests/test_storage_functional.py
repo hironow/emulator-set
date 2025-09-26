@@ -1,3 +1,11 @@
+"""Firebase Storage functional test.
+
+Notes:
+- Bucket creation endpoint may return 501 Not Implemented on the emulator.
+  We treat 501 as acceptable and proceed to upload/download checks, which is
+  the behavior we truly want to validate locally.
+"""
+
 import urllib.parse
 import httpx
 import pytest
