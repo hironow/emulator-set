@@ -43,7 +43,13 @@ def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
         pytest.skip(f"failed to build image {tag} from {path}: {e}")
 
 
-def _run_cli(client: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]) -> str:
+def _run_cli(
+    client: docker.DockerClient,
+    image: str,
+    binary: str,
+    script: str,
+    env: dict[str, str],
+) -> str:
     script = textwrap.dedent(script).lstrip("\n")
     heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
     try:
@@ -65,7 +71,7 @@ def _run_cli(client: docker.DockerClient, image: str, binary: str, script: str, 
 def test_pgadapter_transaction_commit_and_rollback():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     env = {
@@ -111,7 +117,7 @@ exit
 def test_neo4j_explicit_tx_or_skip():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["neo4j-emulator"]) 
+    _ensure_services_running(client, ["neo4j-emulator"])
     _build_image(client, path="neo4j-cli", tag="neo4j-cli:local")
 
     env = {
@@ -137,7 +143,9 @@ exit
     out = _run_cli(client, "neo4j-cli:local", "neo4j-cli", script, env)
     low = out.lower()
     if "error" in low and "begin" in low:
-        pytest.skip("Explicit transactions may not be supported via Cypher in this CLI path")
+        pytest.skip(
+            "Explicit transactions may not be supported via Cypher in this CLI path"
+        )
     # Expect 0 for c1 and 1 for c2; we check presence heuristically
     assert "c1" in low or "count" in low
     assert "c2" in low or "count" in low
@@ -147,7 +155,7 @@ exit
 def test_elasticsearch_refresh_wait_for_visibility():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["elasticsearch-emulator"]) 
+    _ensure_services_running(client, ["elasticsearch-emulator"])
     _build_image(client, path="elasticsearch-cli", tag="elasticsearch-cli:local")
 
     env = {
@@ -170,7 +178,7 @@ DELETE /{index};
 def test_qdrant_upsert_then_delete():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"]) 
+    _ensure_services_running(client, ["qdrant-emulator"])
     _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
 
     env = {

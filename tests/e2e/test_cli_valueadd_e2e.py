@@ -43,7 +43,9 @@ def _build(c: docker.DockerClient, path: str, tag: str) -> None:
         pytest.skip(f"failed to build {tag}: {e}")
 
 
-def _run(c: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]) -> str:
+def _run(
+    c: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]
+) -> str:
     script = textwrap.dedent(script).lstrip("\n")
     heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
     try:
@@ -65,12 +67,21 @@ def _run(c: docker.DockerClient, image: str, binary: str, script: str, env: dict
 
 
 def _pg_env() -> dict[str, str]:
-    return {"PGHOST": "pgadapter-emulator", "PGPORT": "5432", "PGUSER": "user", "PGDATABASE": "test-instance", "PGSSLMODE": "disable"}
+    return {
+        "PGHOST": "pgadapter-emulator",
+        "PGPORT": "5432",
+        "PGUSER": "user",
+        "PGDATABASE": "test-instance",
+        "PGSSLMODE": "disable",
+    }
 
 
 @pytest.mark.e2e
 def test_pgadapter_notnull_default_roundtrip():
-    c = _dc(); _need_net(c); _need(c, ["pgadapter-emulator", "spanner-emulator"]); _build(c, "pgadapter-cli", "pgadapter-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["pgadapter-emulator", "spanner-emulator"])
+    _build(c, "pgadapter-cli", "pgadapter-cli:local")
     script = """
 DROP TABLE IF EXISTS defaults_demo;
 CREATE TABLE defaults_demo (
@@ -99,7 +110,10 @@ exit
 
 @pytest.mark.e2e
 def test_pgadapter_utf8_emoji_roundtrip():
-    c = _dc(); _need_net(c); _need(c, ["pgadapter-emulator", "spanner-emulator"]); _build(c, "pgadapter-cli", "pgadapter-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["pgadapter-emulator", "spanner-emulator"])
+    _build(c, "pgadapter-cli", "pgadapter-cli:local")
     jp = "こんにちは"
     em = "🚀"
     script = f"""
@@ -116,7 +130,10 @@ exit
 
 @pytest.mark.e2e
 def test_pgadapter_default_tx_read_only_or_skip():
-    c = _dc(); _need_net(c); _need(c, ["pgadapter-emulator", "spanner-emulator"]); _build(c, "pgadapter-cli", "pgadapter-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["pgadapter-emulator", "spanner-emulator"])
+    _build(c, "pgadapter-cli", "pgadapter-cli:local")
     script = """
 DROP TABLE IF EXISTS ro2_demo;
 CREATE TABLE ro2_demo (id BIGINT PRIMARY KEY, v INT);
@@ -138,12 +155,19 @@ exit
 
 
 def _neo_env() -> dict[str, str]:
-    return {"NEO4J_URI": "bolt://neo4j-emulator:7687", "NEO4J_USER": "neo4j", "NEO4J_PASSWORD": "password"}
+    return {
+        "NEO4J_URI": "bolt://neo4j-emulator:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "password",
+    }
 
 
 @pytest.mark.e2e
 def test_neo4j_composite_unique_constraint_violation():
-    c = _dc(); _need_net(c); _need(c, ["neo4j-emulator"]); _build(c, "neo4j-cli", "neo4j-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["neo4j-emulator"])
+    _build(c, "neo4j-cli", "neo4j-cli:local")
     script = """
 CREATE CONSTRAINT comp_unique IF NOT EXISTS FOR (u:UUser) REQUIRE (u.first, u.last) IS UNIQUE;
 CREATE (u1:UUser {first:'A', last:'B'});
@@ -154,12 +178,19 @@ DROP CONSTRAINT comp_unique IF EXISTS;
 exit
 """
     out = _run(c, "neo4j-cli:local", "neo4j-cli", script, _neo_env()).lower()
-    assert ("constraint" in out and "violation" in out) or ("already exists" in out) or ("error" in out)
+    assert (
+        ("constraint" in out and "violation" in out)
+        or ("already exists" in out)
+        or ("error" in out)
+    )
 
 
 @pytest.mark.e2e
 def test_neo4j_index_create_drop_and_show():
-    c = _dc(); _need_net(c); _need(c, ["neo4j-emulator"]); _build(c, "neo4j-cli", "neo4j-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["neo4j-emulator"])
+    _build(c, "neo4j-cli", "neo4j-cli:local")
     script = """
 CREATE INDEX idx_uuser_prop IF NOT EXISTS FOR (n:UUser2) ON (n.p);
 CALL db.indexes();
@@ -176,12 +207,18 @@ exit
 
 
 def _es_env() -> dict[str, str]:
-    return {"ELASTICSEARCH_HOST": "elasticsearch-emulator", "ELASTICSEARCH_PORT": "9200"}
+    return {
+        "ELASTICSEARCH_HOST": "elasticsearch-emulator",
+        "ELASTICSEARCH_PORT": "9200",
+    }
 
 
 @pytest.mark.e2e
 def test_elasticsearch_bulk_minimal_success_or_400():
-    c = _dc(); _need_net(c); _need(c, ["elasticsearch-emulator"]); _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["elasticsearch-emulator"])
+    _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
     idx = "bulk_min"
     # Try bulk NLJSON; CLI may not preserve newlines, accept 400 as valid outcome
     script = f"""
@@ -201,7 +238,10 @@ DELETE /{idx};
 
 @pytest.mark.e2e
 def test_elasticsearch_refresh_visibility():
-    c = _dc(); _need_net(c); _need(c, ["elasticsearch-emulator"]); _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["elasticsearch-emulator"])
+    _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
     idx = "vis_min"
     script = f"""
 PUT /{idx} {{"settings": {{"number_of_shards": 1, "number_of_replicas": 0}}}};
@@ -212,7 +252,9 @@ GET /{idx}/_search {{"query": {{"match": {{"name": "no_refresh"}}}}}};
 DELETE /{idx};
 \\q
 """
-    out = _run(c, "elasticsearch-cli:local", "elasticsearch-cli", script, _es_env()).lower()
+    out = _run(
+        c, "elasticsearch-cli:local", "elasticsearch-cli", script, _es_env()
+    ).lower()
     # If first search already finds doc (auto refresh), still acceptable; ensure second search finds it
     assert "no_refresh" in out
 
@@ -226,7 +268,10 @@ def _q_env() -> dict[str, str]:
 
 @pytest.mark.e2e
 def test_qdrant_scroll_pagination():
-    c = _dc(); _need_net(c); _need(c, ["qdrant-emulator"]); _build(c, "qdrant-cli", "qdrant-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["qdrant-emulator"])
+    _build(c, "qdrant-cli", "qdrant-cli:local")
     col = "scroll_min"
     script = textwrap.dedent(
         f"""
@@ -250,7 +295,10 @@ def test_qdrant_scroll_pagination():
 
 @pytest.mark.e2e
 def test_qdrant_score_threshold_border():
-    c = _dc(); _need_net(c); _need(c, ["qdrant-emulator"]); _build(c, "qdrant-cli", "qdrant-cli:local")
+    c = _dc()
+    _need_net(c)
+    _need(c, ["qdrant-emulator"])
+    _build(c, "qdrant-cli", "qdrant-cli:local")
     col = "thresh_min"
     script = textwrap.dedent(
         f"""

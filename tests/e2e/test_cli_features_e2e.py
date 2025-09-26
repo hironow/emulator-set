@@ -52,7 +52,13 @@ def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
         pytest.skip(f"failed to build image {tag} from {path}: {e}")
 
 
-def _run_cli(client: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]) -> str:
+def _run_cli(
+    client: docker.DockerClient,
+    image: str,
+    binary: str,
+    script: str,
+    env: dict[str, str],
+) -> str:
     # Feed a here-doc into the CLI binary; normalize whitespace
     script = textwrap.dedent(script).lstrip("\n")
     heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
@@ -73,6 +79,7 @@ def _run_cli(client: docker.DockerClient, image: str, binary: str, script: str, 
 
 def _rand(n: int = 6) -> str:
     import string as _s, random as _r
+
     return "".join(_r.choices(_s.ascii_lowercase + _s.digits, k=n))
 
 
@@ -80,7 +87,7 @@ def _rand(n: int = 6) -> str:
 def test_pgadapter_cli_aggregate_and_sort():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     t = f"e2e_adv_{_rand()}"
@@ -117,7 +124,7 @@ exit
 def test_neo4j_cli_relationships_and_query():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["neo4j-emulator"]) 
+    _ensure_services_running(client, ["neo4j-emulator"])
     _build_image(client, path="neo4j-cli", tag="neo4j-cli:local")
 
     label = f"Adv{_rand()}"
@@ -147,7 +154,7 @@ exit
 def test_elasticsearch_cli_aggregations():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["elasticsearch-emulator"]) 
+    _ensure_services_running(client, ["elasticsearch-emulator"])
     _build_image(client, path="elasticsearch-cli", tag="elasticsearch-cli:local")
 
     idx = f"adv_{_rand()}"
@@ -172,7 +179,7 @@ DELETE /{idx};
 def test_qdrant_cli_payload_filter():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"]) 
+    _ensure_services_running(client, ["qdrant-emulator"])
     _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
 
     col = f"adv_{_rand()}"

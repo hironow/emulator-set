@@ -41,7 +41,9 @@ def _build(c: docker.DockerClient, path: str, tag: str) -> None:
         pytest.skip(f"failed to build {tag}: {e}")
 
 
-def _run(c: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]) -> str:
+def _run(
+    c: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]
+) -> str:
     script = textwrap.dedent(script).lstrip("\n")
     heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
     try:
@@ -64,10 +66,16 @@ def test_pgadapter_read_only_mode_or_skip():
     """SET TRANSACTION READ ONLY should prevent writes (if supported)."""
     c = _dc()
     _need_net(c)
-    _need(c, ["pgadapter-emulator", "spanner-emulator"]) 
+    _need(c, ["pgadapter-emulator", "spanner-emulator"])
     _build(c, "pgadapter-cli", "pgadapter-cli:local")
 
-    env = {"PGHOST": "pgadapter-emulator", "PGPORT": "5432", "PGUSER": "user", "PGDATABASE": "test-instance", "PGSSLMODE": "disable"}
+    env = {
+        "PGHOST": "pgadapter-emulator",
+        "PGPORT": "5432",
+        "PGUSER": "user",
+        "PGDATABASE": "test-instance",
+        "PGSSLMODE": "disable",
+    }
     script = """
 DROP TABLE IF EXISTS ro_demo;
 CREATE TABLE ro_demo (id BIGINT PRIMARY KEY, v INT);
@@ -90,10 +98,14 @@ exit
 def test_neo4j_unique_constraint_enforcement():
     c = _dc()
     _need_net(c)
-    _need(c, ["neo4j-emulator"]) 
+    _need(c, ["neo4j-emulator"])
     _build(c, "neo4j-cli", "neo4j-cli:local")
 
-    env = {"NEO4J_URI": "bolt://neo4j-emulator:7687", "NEO4J_USER": "neo4j", "NEO4J_PASSWORD": "password"}
+    env = {
+        "NEO4J_URI": "bolt://neo4j-emulator:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "password",
+    }
     script = """
 CREATE CONSTRAINT unique_email IF NOT EXISTS FOR (u:User) REQUIRE u.email IS UNIQUE;
 CREATE (u1:User {email:'dup@example.com'});
@@ -104,14 +116,18 @@ DROP CONSTRAINT unique_email IF EXISTS;
 exit
 """
     out = _run(c, "neo4j-cli:local", "neo4j-cli", script, env).lower()
-    assert ("constraint" in out and "violation" in out) or ("already exists" in out) or ("error" in out)
+    assert (
+        ("constraint" in out and "violation" in out)
+        or ("already exists" in out)
+        or ("error" in out)
+    )
 
 
 @pytest.mark.e2e
 def test_elasticsearch_mapping_type_conflict():
     c = _dc()
     _need_net(c)
-    _need(c, ["elasticsearch-emulator"]) 
+    _need(c, ["elasticsearch-emulator"])
     _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
 
     env = {"ELASTICSEARCH_HOST": "elasticsearch-emulator", "ELASTICSEARCH_PORT": "9200"}
@@ -132,7 +148,7 @@ DELETE /{idx};
 def test_qdrant_delete_by_filter_and_verify():
     c = _dc()
     _need_net(c)
-    _need(c, ["qdrant-emulator"]) 
+    _need(c, ["qdrant-emulator"])
     _build(c, "qdrant-cli", "qdrant-cli:local")
 
     env = {"QDRANT_HOST": "qdrant-emulator", "QDRANT_PORT": "6333"}

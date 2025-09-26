@@ -40,7 +40,7 @@ def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
 def test_qdrant_filter_must_should_mustnot_with_threshold():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"]) 
+    _ensure_services_running(client, ["qdrant-emulator"])
     _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
 
     env = {

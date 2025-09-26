@@ -52,7 +52,13 @@ def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
         pytest.skip(f"failed to build image {tag} from {path}: {e}")
 
 
-def _run_cli(client: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]) -> str:
+def _run_cli(
+    client: docker.DockerClient,
+    image: str,
+    binary: str,
+    script: str,
+    env: dict[str, str],
+) -> str:
     # Feed a here-doc into the CLI binary; dedent to avoid leading spaces
     script = textwrap.dedent(script).lstrip("\n")
     heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
@@ -79,7 +85,7 @@ def _rand_suffix(n: int = 6) -> str:
 def test_pgadapter_cli_roundtrip():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     suffix = _rand_suffix()
@@ -113,7 +119,7 @@ exit
 def test_neo4j_cli_roundtrip():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["neo4j-emulator"]) 
+    _ensure_services_running(client, ["neo4j-emulator"])
     _build_image(client, path="neo4j-cli", tag="neo4j-cli:local")
 
     label = f"E2E_{_rand_suffix()}"
@@ -140,7 +146,7 @@ exit
 def test_elasticsearch_cli_roundtrip():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["elasticsearch-emulator"]) 
+    _ensure_services_running(client, ["elasticsearch-emulator"])
     _build_image(client, path="elasticsearch-cli", tag="elasticsearch-cli:local")
 
     index = f"e2e_products_{_rand_suffix()}"
@@ -166,7 +172,7 @@ DELETE /{index};
 def test_qdrant_cli_roundtrip():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"]) 
+    _ensure_services_running(client, ["qdrant-emulator"])
     _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
 
     collection = f"e2e_{_rand_suffix()}"

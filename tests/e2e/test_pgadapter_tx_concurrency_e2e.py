@@ -56,7 +56,7 @@ def _env_pg() -> dict[str, str]:
 def test_pgadapter_concurrent_update_conflict_or_skip():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     env = _env_pg()
@@ -141,14 +141,17 @@ def test_pgadapter_concurrent_update_conflict_or_skip():
             exit
             """
         ).lstrip("\n")
-        out = client.containers.run(
-            image="pgadapter-cli:local",
-            command=["sh", "-lc", f"cat <<'EOF' | ./pgadapter-cli\n{verify}\nEOF"],
-            environment=env,
-            network=NETWORK_NAME,
-            remove=True,
-            stdout=True,
-            stderr=True,
-        ).decode(errors="ignore").lower()
+        out = (
+            client.containers.run(
+                image="pgadapter-cli:local",
+                command=["sh", "-lc", f"cat <<'EOF' | ./pgadapter-cli\n{verify}\nEOF"],
+                environment=env,
+                network=NETWORK_NAME,
+                remove=True,
+                stdout=True,
+                stderr=True,
+            )
+            .decode(errors="ignore")
+            .lower()
+        )
         assert " b " in out or "\nb\n" in out or "b" in out
-

@@ -26,7 +26,9 @@ def _docker_client() -> docker.DockerClient:
 def _ensure_network(client: docker.DockerClient) -> None:
     nets = client.networks.list(names=[NETWORK_NAME])
     if not nets:
-        pytest.skip(f"network '{NETWORK_NAME}' not found. Start emulators first (docker compose up -d)")
+        pytest.skip(
+            f"network '{NETWORK_NAME}' not found. Start emulators first (docker compose up -d)"
+        )
 
 
 def _ensure_services_running(client: docker.DockerClient, names: list[str]) -> None:
@@ -44,7 +46,9 @@ def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
         pytest.skip(f"failed to build image {tag} from {path}: {e}")
 
 
-def _run_and_capture(client: docker.DockerClient, image: str, command: str, env: dict[str, str]) -> str:
+def _run_and_capture(
+    client: docker.DockerClient, image: str, command: str, env: dict[str, str]
+) -> str:
     try:
         logs: bytes = client.containers.run(
             image=image,
@@ -64,10 +68,13 @@ def _run_and_capture(client: docker.DockerClient, image: str, command: str, env:
 def test_pgadapter_cli_help_and_exit():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, [
-        "pgadapter-emulator",
-        "spanner-emulator",
-    ])
+    _ensure_services_running(
+        client,
+        [
+            "pgadapter-emulator",
+            "spanner-emulator",
+        ],
+    )
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
     env = {
         "PGHOST": "pgadapter-emulator",
@@ -76,7 +83,9 @@ def test_pgadapter_cli_help_and_exit():
         "PGDATABASE": "test-instance",
         "PGSSLMODE": "disable",
     }
-    out = _run_and_capture(client, "pgadapter-cli:local", "printf 'help\\nexit\\n' | ./pgadapter-cli", env)
+    out = _run_and_capture(
+        client, "pgadapter-cli:local", "printf 'help\\nexit\\n' | ./pgadapter-cli", env
+    )
     assert ("pgAdapter CLI" in out) or ("📚 Available Commands" in out)
     assert ("Goodbye" in out) or ("Bye" in out)
 
@@ -85,14 +94,16 @@ def test_pgadapter_cli_help_and_exit():
 def test_neo4j_cli_help_and_exit():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["neo4j-emulator"]) 
+    _ensure_services_running(client, ["neo4j-emulator"])
     _build_image(client, path="neo4j-cli", tag="neo4j-cli:local")
     env = {
         "NEO4J_URI": "bolt://neo4j-emulator:7687",
         "NEO4J_USER": "neo4j",
         "NEO4J_PASSWORD": "password",
     }
-    out = _run_and_capture(client, "neo4j-cli:local", "printf 'help\\nexit\\n' | ./neo4j-cli", env)
+    out = _run_and_capture(
+        client, "neo4j-cli:local", "printf 'help\\nexit\\n' | ./neo4j-cli", env
+    )
     assert ("Neo4j CLI" in out) or ("📚 Available Commands" in out)
     assert ("Goodbye" in out) or ("Bye" in out)
 
@@ -101,13 +112,18 @@ def test_neo4j_cli_help_and_exit():
 def test_elasticsearch_cli_info_and_quit():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["elasticsearch-emulator"]) 
+    _ensure_services_running(client, ["elasticsearch-emulator"])
     _build_image(client, path="elasticsearch-cli", tag="elasticsearch-cli:local")
     env = {
         "ELASTICSEARCH_HOST": "elasticsearch-emulator",
         "ELASTICSEARCH_PORT": "9200",
     }
-    out = _run_and_capture(client, "elasticsearch-cli:local", "printf '\\\\i\\n\\\\q\\n' | ./elasticsearch-cli", env)
+    out = _run_and_capture(
+        client,
+        "elasticsearch-cli:local",
+        "printf '\\\\i\\n\\\\q\\n' | ./elasticsearch-cli",
+        env,
+    )
     assert ("Connected to Elasticsearch" in out) or ("Cluster Information" in out)
 
 
@@ -115,11 +131,13 @@ def test_elasticsearch_cli_info_and_quit():
 def test_qdrant_cli_info_and_quit():
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"]) 
+    _ensure_services_running(client, ["qdrant-emulator"])
     _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
     env = {
         "QDRANT_HOST": "qdrant-emulator",
         "QDRANT_PORT": "6333",
     }
-    out = _run_and_capture(client, "qdrant-cli:local", "printf '\\\\i\\n\\\\q\\n' | ./qdrant-cli", env)
+    out = _run_and_capture(
+        client, "qdrant-cli:local", "printf '\\\\i\\n\\\\q\\n' | ./qdrant-cli", env
+    )
     assert ("Connected to Qdrant" in out) or ("Cluster Information" in out)

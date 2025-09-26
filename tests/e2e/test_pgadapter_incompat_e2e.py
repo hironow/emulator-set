@@ -64,7 +64,7 @@ def test_pgadapter_error_without_primary_key():
     """Spanner requires a PRIMARY KEY; table without PK should error."""
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     script = """
@@ -81,7 +81,7 @@ def test_pgadapter_error_on_serial_type():
     """SERIAL is commonly unsupported in Spanner PG dialect."""
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     script = """
@@ -102,7 +102,7 @@ def test_pgadapter_error_on_sequence():
     """Sequences are not supported in Spanner PG dialect."""
     client = _docker_client()
     _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"]) 
+    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
     _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
 
     script = """
