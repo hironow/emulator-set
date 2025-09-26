@@ -22,3 +22,8 @@ dev = [
     "pytest-asyncio>=0.25.0",
     "ruff>=0.12.4",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: end-to-end tests that require Docker and running emulators",
+]
