@@ -24,8 +24,8 @@ dependencies = [
 packages = ["tests"]
 
 
-[tool.uv.workspace]
-members = []
+# [tool.uv.workspace]
+# members = []
 
 [dependency-groups]
 dev = [
