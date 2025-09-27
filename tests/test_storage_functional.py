@@ -8,18 +8,21 @@ Notes:
 
 import urllib.parse
 import pytest
+from aiohttp import ClientTimeout
 
 
 BASE = "http://localhost:9199"
 
 
-def _ensure_bucket(http_client, project_id: str, bucket: str) -> None:
+async def _ensure_bucket(http_client, project_id: str, bucket: str) -> None:
     url = f"{BASE}/storage/v1/b?project={project_id}"
-    res = http_client.post(url, json={"name": bucket}, timeout=5.0)
-    # 200/201 OK when created, 409 if exists; 501 Not Implemented is acceptable in emulator
-    if res.status_code in (200, 201, 409, 501):
-        return
-    pytest.fail(res.text)
+    async with http_client.post(
+        url, json={"name": bucket}, timeout=ClientTimeout(total=5.0)
+    ) as res:
+        # 200/201 OK when created, 409 if exists; 501 Not Implemented is acceptable in emulator
+        if res.status in (200, 201, 409, 501):
+            return
+        pytest.fail(await res.text())
 
 
 @pytest.mark.parametrize(
@@ -30,10 +33,13 @@ def _ensure_bucket(http_client, project_id: str, bucket: str) -> None:
         ("dir/nested/file.bin", b"\x00\x01\x02\x03"),
     ],
 )
-def test_storage_upload_and_download(object_name, content, project_id, http_client):
+@pytest.mark.asyncio
+async def test_storage_upload_and_download(
+    object_name, content, project_id, http_client
+):
     # given: bucket exists and an object name/content
     bucket = f"{project_id}.appspot.com"
-    _ensure_bucket(http_client, project_id, bucket)
+    await _ensure_bucket(http_client, project_id, bucket)
 
     upload_url = (
         f"{BASE}/upload/storage/v1/b/{bucket}/o?uploadType=media&name="
@@ -41,11 +47,12 @@ def test_storage_upload_and_download(object_name, content, project_id, http_clie
     )
 
     # when: upload object content
-    up_res = http_client.post(upload_url, content=content, timeout=5.0)
-
-    # then: upload succeeds and metadata returns the object name
-    assert up_res.status_code in (200, 201), up_res.text
-    meta = up_res.json()
+    async with http_client.post(
+        upload_url, data=content, timeout=ClientTimeout(total=5.0)
+    ) as up_res:
+        # then: upload succeeds and metadata returns the object name
+        assert up_res.status in (200, 201), await up_res.text()
+        meta = await up_res.json()
     assert meta.get("name") == object_name
 
     # when: download raw object content
@@ -54,8 +61,10 @@ def test_storage_upload_and_download(object_name, content, project_id, http_clie
         + urllib.parse.quote(object_name, safe="")
         + "?alt=media"
     )
-    down_res = http_client.get(download_url, timeout=5.0)
-
-    # then: content matches
-    assert down_res.status_code == 200
-    assert down_res.content == content
+    async with http_client.get(
+        download_url, timeout=ClientTimeout(total=5.0)
+    ) as down_res:
+        # then: content matches
+        assert down_res.status == 200
+        body = await down_res.read()
+        assert body == content

@@ -1,9 +1,10 @@
 import pytest
 import docker
-import time
+import asyncio
 
 
-def test_neo4j_container_starts(http_client):
+@pytest.mark.asyncio
+async def test_neo4j_container_starts(http_client):
     """Test that the Neo4j container starts and is healthy."""
     client = docker.from_env()
 
@@ -22,10 +23,10 @@ def test_neo4j_container_starts(http_client):
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = http_client.get("http://localhost:7474", timeout=1)
-            if response.status_code == 200:
-                break
+            async with http_client.get("http://localhost:7474") as response:
+                if response.status == 200:
+                    break
         except Exception:
             if i == max_retries - 1:
                 pytest.fail("Neo4j HTTP endpoint is not accessible at localhost:7474")
-            time.sleep(1)
+            await asyncio.sleep(1)

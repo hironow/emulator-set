@@ -1,9 +1,10 @@
 import pytest
 import docker
-import time
+import asyncio
 
 
-def test_qdrant_container_starts(http_client):
+@pytest.mark.asyncio
+async def test_qdrant_container_starts(http_client):
     """Test that the Qdrant container starts and is healthy."""
     client = docker.from_env()
 
@@ -22,16 +23,14 @@ def test_qdrant_container_starts(http_client):
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = http_client.get("http://localhost:6333/healthz", timeout=1)
-            if response.status_code == 200:
-                break
+            async with http_client.get("http://localhost:6333/healthz") as response:
+                if response.status == 200:
+                    break
         except Exception:
             if i == max_retries - 1:
                 pytest.fail("Qdrant REST API is not accessible at localhost:6333")
-            time.sleep(1)
+            await asyncio.sleep(1)
 
     # Verify Qdrant is ready
-    response = http_client.get("http://localhost:6333/readyz", timeout=5)
-    assert response.status_code == 200, (
-        f"Qdrant is not ready, status code: {response.status_code}"
-    )
+    async with http_client.get("http://localhost:6333/readyz") as response:
+        assert response.status == 200, f"Qdrant is not ready, status: {response.status}"

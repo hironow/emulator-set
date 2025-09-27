@@ -8,14 +8,16 @@ Why this may be skipped:
 
 import uuid
 import pytest
+from aiohttp import ClientTimeout
 
 
-def _tasks_rest_supported(http_client, base_url: str, project_id: str) -> bool:
+async def _tasks_rest_supported(http_client, base_url: str, project_id: str) -> bool:
     try:
-        res = http_client.get(
-            f"{base_url}/projects/{project_id}/locations/{LOCATION}/queues", timeout=3.0
-        )
-        return res.status_code in (200, 404)
+        async with http_client.get(
+            f"{base_url}/projects/{project_id}/locations/{LOCATION}/queues",
+            timeout=ClientTimeout(total=3.0),
+        ) as res:
+            return res.status in (200, 404)
     except Exception:
         return False
 
@@ -24,9 +26,10 @@ BASE = "http://localhost:9499/v2"
 LOCATION = "us-central1"
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("queue_id", ["q-default", "q-jobs"])
-def test_tasks_create_queue_and_list(queue_id, project_id, http_client):
-    if not _tasks_rest_supported(http_client, BASE, project_id):
+async def test_tasks_create_queue_and_list(queue_id, project_id, http_client):
+    if not await _tasks_rest_supported(http_client, BASE, project_id):
         pytest.skip(
             "Cloud Tasks REST API not implemented by emulator; skipping functional test"
         )
@@ -35,19 +38,19 @@ def test_tasks_create_queue_and_list(queue_id, project_id, http_client):
 
     # when: create queue
     create_url = f"{BASE}/projects/{project_id}/locations/{LOCATION}/queues"
-    create_res = http_client.post(
-        create_url, json={"queue": {"name": queue_name}}, timeout=5.0
-    )
-
-    # then: queue is created (200) or already exists (409)
-    assert create_res.status_code in (200, 409), create_res.text
+    async with http_client.post(
+        create_url,
+        json={"queue": {"name": queue_name}},
+        timeout=ClientTimeout(total=5.0),
+    ) as create_res:
+        # then: queue is created (200) or already exists (409)
+        assert create_res.status in (200, 409), await create_res.text()
 
     # when: list queues
     list_url = f"{BASE}/projects/{project_id}/locations/{LOCATION}/queues"
-    list_res = http_client.get(list_url, timeout=5.0)
-
-    # then: response includes our queue or is a valid list
-    assert list_res.status_code == 200, list_res.text
-    data = list_res.json()
+    async with http_client.get(list_url, timeout=ClientTimeout(total=5.0)) as list_res:
+        # then: response includes our queue or is a valid list
+        assert list_res.status == 200, await list_res.text()
+        data = await list_res.json()
     names = [q.get("name") for q in data.get("queues", [])]
     assert queue_name in names
