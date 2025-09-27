@@ -94,7 +94,7 @@ Coverage highlights
 - Firestore: Create/Get via REST（エミュレータ専用の寛容なルールで実行）
 - Auth: SignUp / SignInWithPassword
 - Storage: Upload/Download（バケット作成 API が未実装でも継続）
-- Pub/Sub: Topic / Subscription / Publish / Pull / Ack via REST（HTTP/2）
+- Pub/Sub: Topic / Subscription / Publish / Pull / Ack via REST
 - Eventarc: ポートの疎通スモーク
 - Spanner / pgAdapter: コンテナ稼働と TCP ポート確認
 - Neo4j / Elasticsearch / Qdrant: ヘルス確認
@@ -107,9 +107,9 @@ Test groups
 
 About skipped tests（想定内）
 
-- Pub/Sub REST: 一部のエミュレータビルド/環境では、HTTP/2 RST_STREAM の 500 を返すことがあります。
-  - テストは httpx の HTTP/2 を使用し、REST 応答が不安定な場合は fail ではなく skip にします。
-  - 有効化するには dev extras の `h2` をインストールし（CI は対応済み）、エミュレータ REST が応答することを確認してください。
+- Pub/Sub REST: 一部のエミュレータビルド/環境では、HTTP/2 要求や不安定な REST 応答により 500 等が返ることがあります。
+  - テストは aiohttp を使用し、REST 応答が不安定な場合は fail ではなく skip にします。
+  - 環境によってはエミュレータが HTTP/2 を要求することがあります。その場合は本テストは自動的に skip されます。
 - Cloud Tasks REST: 未実装なケースが多く、事前検出して skip する設計です。
 
 Note: Firestore のセキュリティルールは、ローカルエミュレータ用に「全面許可」へ切り替えています（テスト簡略化のため）。本番での使用は禁止です。

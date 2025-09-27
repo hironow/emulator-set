@@ -14,15 +14,8 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import pytest
-
-try:  # Optional HTTP/2 support for httpx
-    import h2 as _h2  # type: ignore
-
-    _HTTP2_AVAILABLE = True
-except Exception:  # pragma: no cover
-    _HTTP2_AVAILABLE = False
-
-import httpx
+import pytest_asyncio
+from aiohttp import ClientSession, ClientTimeout, TCPConnector
 from dotenv import load_dotenv
 
 
@@ -44,8 +37,10 @@ def project_id() -> str:
     return os.environ.get("PROJECT_ID", "test-project")
 
 
-@pytest.fixture()
-def http_client() -> httpx.Client:
-    """Shared httpx client with sane defaults (function-scoped)."""
-    with httpx.Client(http2=_HTTP2_AVAILABLE, timeout=5.0) as client:
-        yield client
+@pytest_asyncio.fixture()
+async def http_client() -> ClientSession:
+    """Shared aiohttp client with sane defaults (function-scoped)."""
+    timeout = ClientTimeout(total=5.0)
+    connector = TCPConnector(force_close=True)
+    async with ClientSession(timeout=timeout, connector=connector) as session:
+        yield session
