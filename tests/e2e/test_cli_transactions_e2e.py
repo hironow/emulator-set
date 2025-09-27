@@ -9,70 +9,15 @@ Focus
 
 import textwrap
 import pytest
-import docker
-
-
-NETWORK_NAME = "emulator-network"
-
-
-def _docker_client() -> docker.DockerClient:
-    try:
-        client = docker.from_env()
-        client.ping()
-        return client
-    except Exception as e:
-        pytest.skip(f"docker not available: {e}")
-
-
-def _ensure_network(client: docker.DockerClient) -> None:
-    if not client.networks.list(names=[NETWORK_NAME]):
-        pytest.skip("emulator-network not found. Start emulators first.")
-
-
-def _ensure_services_running(client: docker.DockerClient, names: list[str]) -> None:
-    running = {c.name for c in client.containers.list()}
-    missing = [n for n in names if n not in running]
-    if missing:
-        pytest.skip(f"required emulator containers not running: {', '.join(missing)}")
-
-
-def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
-    try:
-        client.images.build(path=path, tag=tag, rm=True)
-    except Exception as e:
-        pytest.skip(f"failed to build image {tag} from {path}: {e}")
-
-
-def _run_cli(
-    client: docker.DockerClient,
-    image: str,
-    binary: str,
-    script: str,
-    env: dict[str, str],
-) -> str:
-    script = textwrap.dedent(script).lstrip("\n")
-    heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
-    try:
-        logs: bytes = client.containers.run(
-            image=image,
-            command=["sh", "-lc", heredoc],
-            environment=env,
-            network=NETWORK_NAME,
-            remove=True,
-            stdout=True,
-            stderr=True,
-        )
-        return logs.decode(errors="ignore")
-    except Exception as e:
-        pytest.skip(f"run {image} failed: {e}")
 
 
 @pytest.mark.e2e
-def test_pgadapter_transaction_commit_and_rollback():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
-    _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
+def test_pgadapter_transaction_commit_and_rollback(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image(path="pgadapter-cli", tag="pgadapter-cli:local")
 
     env = {
         "PGHOST": "pgadapter-emulator",
@@ -102,7 +47,7 @@ DROP TABLE {table};
 exit
 """
 
-    out = _run_cli(client, "pgadapter-cli:local", "pgadapter-cli", script, env)
+    out = run_cli("pgadapter-cli:local", "pgadapter-cli", script, env)
     low = out.lower()
     # Inside tx we should see 'rollbackme'
     assert "rollbackme" in low
@@ -114,11 +59,12 @@ exit
 
 
 @pytest.mark.e2e
-def test_neo4j_explicit_tx_or_skip():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["neo4j-emulator"])
-    _build_image(client, path="neo4j-cli", tag="neo4j-cli:local")
+def test_neo4j_explicit_tx_or_skip(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["neo4j-emulator"])
+    build_image(path="neo4j-cli", tag="neo4j-cli:local")
 
     env = {
         "NEO4J_URI": "bolt://neo4j-emulator:7687",
@@ -140,7 +86,7 @@ MATCH (n:{label}) DETACH DELETE n;
 exit
 """
 
-    out = _run_cli(client, "neo4j-cli:local", "neo4j-cli", script, env)
+    out = run_cli("neo4j-cli:local", "neo4j-cli", script, env)
     low = out.lower()
     if "error" in low and "begin" in low:
         pytest.skip(
@@ -152,11 +98,12 @@ exit
 
 
 @pytest.mark.e2e
-def test_elasticsearch_refresh_wait_for_visibility():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["elasticsearch-emulator"])
-    _build_image(client, path="elasticsearch-cli", tag="elasticsearch-cli:local")
+def test_elasticsearch_refresh_wait_for_visibility(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["elasticsearch-emulator"])
+    build_image(path="elasticsearch-cli", tag="elasticsearch-cli:local")
 
     env = {
         "ELASTICSEARCH_HOST": "elasticsearch-emulator",
@@ -170,16 +117,17 @@ GET /{index}/_search {{"query": {{"match": {{"name": "committed"}}}}}};
 DELETE /{index};
 \\q
 """
-    out = _run_cli(client, "elasticsearch-cli:local", "elasticsearch-cli", script, env)
+    out = run_cli("elasticsearch-cli:local", "elasticsearch-cli", script, env)
     assert "committed" in out
 
 
 @pytest.mark.e2e
-def test_qdrant_upsert_then_delete():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"])
-    _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
+def test_qdrant_upsert_then_delete(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["qdrant-emulator"])
+    build_image(path="qdrant-cli", tag="qdrant-cli:local")
 
     env = {
         "QDRANT_HOST": "qdrant-emulator",
@@ -194,7 +142,7 @@ POST /collections/{col}/points/search {{"vector": [0.1, 0.2], "limit": 10, "with
 DELETE /collections/{col};
 \\q
 """
-    out = _run_cli(client, "qdrant-cli:local", "qdrant-cli", script, env)
+    out = run_cli("qdrant-cli:local", "qdrant-cli", script, env)
     low = out.lower()
     assert "keep" in low
     assert "drop" not in low

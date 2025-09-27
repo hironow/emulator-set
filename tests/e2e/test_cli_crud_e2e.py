@@ -15,66 +15,6 @@ import random
 import string
 import textwrap
 import pytest
-import docker
-
-
-NETWORK_NAME = "emulator-network"
-
-
-def _docker_client() -> docker.DockerClient:
-    try:
-        client = docker.from_env()
-        client.ping()
-        return client
-    except Exception as e:
-        pytest.skip(f"docker not available: {e}")
-
-
-def _ensure_network(client: docker.DockerClient) -> None:
-    nets = client.networks.list(names=[NETWORK_NAME])
-    if not nets:
-        pytest.skip(
-            f"network '{NETWORK_NAME}' not found. Start emulators first (docker compose up -d)"
-        )
-
-
-def _ensure_services_running(client: docker.DockerClient, names: list[str]) -> None:
-    running = {c.name for c in client.containers.list()}
-    missing = [n for n in names if n not in running]
-    if missing:
-        pytest.skip(f"required emulator containers not running: {', '.join(missing)}")
-
-
-def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
-    try:
-        client.images.build(path=path, tag=tag, rm=True)
-    except Exception as e:
-        pytest.skip(f"failed to build image {tag} from {path}: {e}")
-
-
-def _run_cli(
-    client: docker.DockerClient,
-    image: str,
-    binary: str,
-    script: str,
-    env: dict[str, str],
-) -> str:
-    # Feed a here-doc into the CLI binary; dedent to avoid leading spaces
-    script = textwrap.dedent(script).lstrip("\n")
-    heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
-    try:
-        logs: bytes = client.containers.run(
-            image=image,
-            command=["sh", "-lc", heredoc],
-            environment=env,
-            network=NETWORK_NAME,
-            remove=True,
-            stdout=True,
-            stderr=True,
-        )
-        return logs.decode(errors="ignore")
-    except Exception as e:
-        pytest.skip(f"run {image} failed: {e}")
 
 
 def _rand_suffix(n: int = 6) -> str:
@@ -82,11 +22,12 @@ def _rand_suffix(n: int = 6) -> str:
 
 
 @pytest.mark.e2e
-def test_pgadapter_cli_roundtrip():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
-    _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
+def test_pgadapter_cli_roundtrip(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image(path="pgadapter-cli", tag="pgadapter-cli:local")
 
     suffix = _rand_suffix()
     table = f"e2e_items_{suffix}"
@@ -110,17 +51,16 @@ exit
         "PGDATABASE": "test-instance",
         "PGSSLMODE": "disable",
     }
-    out = _run_cli(client, "pgadapter-cli:local", "pgadapter-cli", script, env)
+    out = run_cli("pgadapter-cli:local", "pgadapter-cli", script, env)
     # SELECT の結果のみを検証。tables コマンドはスキーマ表示の差異で空になる場合がある。
     assert "one" in out
 
 
 @pytest.mark.e2e
-def test_neo4j_cli_roundtrip():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["neo4j-emulator"])
-    _build_image(client, path="neo4j-cli", tag="neo4j-cli:local")
+def test_neo4j_cli_roundtrip(ensure_network, require_services, build_image, run_cli):
+    ensure_network()
+    require_services(["neo4j-emulator"])
+    build_image(path="neo4j-cli", tag="neo4j-cli:local")
 
     label = f"E2E_{_rand_suffix()}"
     script = f"""
@@ -137,17 +77,18 @@ exit
         "NEO4J_USER": "neo4j",
         "NEO4J_PASSWORD": "password",
     }
-    out = _run_cli(client, "neo4j-cli:local", "neo4j-cli", script, env)
+    out = run_cli("neo4j-cli:local", "neo4j-cli", script, env)
     assert "Alice" in out
     assert label in out
 
 
 @pytest.mark.e2e
-def test_elasticsearch_cli_roundtrip():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["elasticsearch-emulator"])
-    _build_image(client, path="elasticsearch-cli", tag="elasticsearch-cli:local")
+def test_elasticsearch_cli_roundtrip(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["elasticsearch-emulator"])
+    build_image(path="elasticsearch-cli", tag="elasticsearch-cli:local")
 
     index = f"e2e_products_{_rand_suffix()}"
     script = f"""
@@ -163,17 +104,16 @@ DELETE /{index};
         "ELASTICSEARCH_HOST": "elasticsearch-emulator",
         "ELASTICSEARCH_PORT": "9200",
     }
-    out = _run_cli(client, "elasticsearch-cli:local", "elasticsearch-cli", script, env)
+    out = run_cli("elasticsearch-cli:local", "elasticsearch-cli", script, env)
     assert "acknowledged" in out
     assert "created" in out or "hits" in out
 
 
 @pytest.mark.e2e
-def test_qdrant_cli_roundtrip():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["qdrant-emulator"])
-    _build_image(client, path="qdrant-cli", tag="qdrant-cli:local")
+def test_qdrant_cli_roundtrip(ensure_network, require_services, build_image, run_cli):
+    ensure_network()
+    require_services(["qdrant-emulator"])
+    build_image(path="qdrant-cli", tag="qdrant-cli:local")
 
     collection = f"e2e_{_rand_suffix()}"
     script = f"""
@@ -189,6 +129,6 @@ DELETE /collections/{collection};
         "QDRANT_HOST": "qdrant-emulator",
         "QDRANT_PORT": "6333",
     }
-    out = _run_cli(client, "qdrant-cli:local", "qdrant-cli", script, env)
+    out = run_cli("qdrant-cli:local", "qdrant-cli", script, env)
     assert "status" in out and "ok" in out
     assert '"id": 1' in out or '"score"' in out

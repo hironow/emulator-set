@@ -7,67 +7,16 @@ Goals
 
 import textwrap
 import pytest
-import docker
-
-
-NETWORK_NAME = "emulator-network"
-
-
-def _dc() -> docker.DockerClient:
-    try:
-        c = docker.from_env()
-        c.ping()
-        return c
-    except Exception as e:
-        pytest.skip(f"docker not available: {e}")
-
-
-def _need_net(c: docker.DockerClient) -> None:
-    if not c.networks.list(names=[NETWORK_NAME]):
-        pytest.skip("emulator-network not found. Start emulators first.")
-
-
-def _need(c: docker.DockerClient, names: list[str]) -> None:
-    running = {x.name for x in c.containers.list()}
-    missing = [n for n in names if n not in running]
-    if missing:
-        pytest.skip(f"required emulator containers not running: {', '.join(missing)}")
-
-
-def _build(c: docker.DockerClient, path: str, tag: str) -> None:
-    try:
-        c.images.build(path=path, tag=tag, rm=True)
-    except Exception as e:
-        pytest.skip(f"failed to build {tag}: {e}")
-
-
-def _run(
-    c: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]
-) -> str:
-    script = textwrap.dedent(script).lstrip("\n")
-    heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
-    try:
-        out: bytes = c.containers.run(
-            image=image,
-            command=["sh", "-lc", heredoc],
-            environment=env,
-            network=NETWORK_NAME,
-            remove=True,
-            stdout=True,
-            stderr=True,
-        )
-        return out.decode(errors="ignore")
-    except Exception as e:
-        pytest.skip(f"run {image} failed: {e}")
 
 
 @pytest.mark.e2e
-def test_pgadapter_read_only_mode_or_skip():
+def test_pgadapter_read_only_mode_or_skip(
+    ensure_network, require_services, build_image, run_cli
+):
     """SET TRANSACTION READ ONLY should prevent writes (if supported)."""
-    c = _dc()
-    _need_net(c)
-    _need(c, ["pgadapter-emulator", "spanner-emulator"])
-    _build(c, "pgadapter-cli", "pgadapter-cli:local")
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image("pgadapter-cli", "pgadapter-cli:local")
 
     env = {
         "PGHOST": "pgadapter-emulator",
@@ -86,7 +35,7 @@ ROLLBACK;
 DROP TABLE ro_demo;
 exit
 """
-    out = _run(c, "pgadapter-cli:local", "pgadapter-cli", script, env).lower()
+    out = run_cli("pgadapter-cli:local", "pgadapter-cli", script, env).lower()
     if "set transaction" in out and "error" in out:
         # Some builds may not support the SET TRANSACTION syntax — treat as unsupported
         pytest.skip("SET TRANSACTION READ ONLY not supported by this pgAdapter build")
@@ -95,11 +44,12 @@ exit
 
 
 @pytest.mark.e2e
-def test_neo4j_unique_constraint_enforcement():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["neo4j-emulator"])
-    _build(c, "neo4j-cli", "neo4j-cli:local")
+def test_neo4j_unique_constraint_enforcement(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["neo4j-emulator"])
+    build_image("neo4j-cli", "neo4j-cli:local")
 
     env = {
         "NEO4J_URI": "bolt://neo4j-emulator:7687",
@@ -115,7 +65,7 @@ MATCH (u:User) DETACH DELETE u;
 DROP CONSTRAINT unique_email IF EXISTS;
 exit
 """
-    out = _run(c, "neo4j-cli:local", "neo4j-cli", script, env).lower()
+    out = run_cli("neo4j-cli:local", "neo4j-cli", script, env).lower()
     assert (
         ("constraint" in out and "violation" in out)
         or ("already exists" in out)
@@ -124,11 +74,12 @@ exit
 
 
 @pytest.mark.e2e
-def test_elasticsearch_mapping_type_conflict():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["elasticsearch-emulator"])
-    _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
+def test_elasticsearch_mapping_type_conflict(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["elasticsearch-emulator"])
+    build_image("elasticsearch-cli", "elasticsearch-cli:local")
 
     env = {"ELASTICSEARCH_HOST": "elasticsearch-emulator", "ELASTICSEARCH_PORT": "9200"}
     idx = "type_conflict"
@@ -139,17 +90,18 @@ POST /{idx}/_doc {{"price": "not-an-integer"}};
 DELETE /{idx};
 \\q
 """
-    out = _run(c, "elasticsearch-cli:local", "elasticsearch-cli", script, env)
+    out = run_cli("elasticsearch-cli:local", "elasticsearch-cli", script, env)
     # Expect HTTP 400 error for type conflict
     assert "HTTP 400" in out or "mapper_parsing_exception" in out.lower()
 
 
 @pytest.mark.e2e
-def test_qdrant_delete_by_filter_and_verify():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["qdrant-emulator"])
-    _build(c, "qdrant-cli", "qdrant-cli:local")
+def test_qdrant_delete_by_filter_and_verify(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["qdrant-emulator"])
+    build_image("qdrant-cli", "qdrant-cli:local")
 
     env = {"QDRANT_HOST": "qdrant-emulator", "QDRANT_PORT": "6333"}
     col = "delete_filter"
@@ -174,7 +126,7 @@ def test_qdrant_delete_by_filter_and_verify():
         \\q
         """
     ).lstrip("\n")
-    out = _run(c, "qdrant-cli:local", "qdrant-cli", script, env)
+    out = run_cli("qdrant-cli:local", "qdrant-cli", script, env)
     if "HTTP 400" in out:
         pytest.skip("Qdrant delete-by-filter not supported by this emulator build")
     low = out.lower()

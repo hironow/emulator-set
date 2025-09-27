@@ -9,58 +9,6 @@ Scenarios
 
 import textwrap
 import pytest
-import docker
-
-
-NETWORK_NAME = "emulator-network"
-
-
-def _dc() -> docker.DockerClient:
-    try:
-        c = docker.from_env()
-        c.ping()
-        return c
-    except Exception as e:
-        pytest.skip(f"docker not available: {e}")
-
-
-def _need_net(c: docker.DockerClient) -> None:
-    if not c.networks.list(names=[NETWORK_NAME]):
-        pytest.skip("emulator-network not found. Start emulators first.")
-
-
-def _need(c: docker.DockerClient, names: list[str]) -> None:
-    running = {x.name for x in c.containers.list()}
-    missing = [n for n in names if n not in running]
-    if missing:
-        pytest.skip(f"required emulator containers not running: {', '.join(missing)}")
-
-
-def _build(c: docker.DockerClient, path: str, tag: str) -> None:
-    try:
-        c.images.build(path=path, tag=tag, rm=True)
-    except Exception as e:
-        pytest.skip(f"failed to build {tag}: {e}")
-
-
-def _run(
-    c: docker.DockerClient, image: str, binary: str, script: str, env: dict[str, str]
-) -> str:
-    script = textwrap.dedent(script).lstrip("\n")
-    heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
-    try:
-        out: bytes = c.containers.run(
-            image=image,
-            command=["sh", "-lc", heredoc],
-            environment=env,
-            network=NETWORK_NAME,
-            remove=True,
-            stdout=True,
-            stderr=True,
-        )
-        return out.decode(errors="ignore")
-    except Exception as e:
-        pytest.skip(f"run {image} failed: {e}")
 
 
 # ---------- pgAdapter ----------
@@ -77,11 +25,12 @@ def _pg_env() -> dict[str, str]:
 
 
 @pytest.mark.e2e
-def test_pgadapter_notnull_default_roundtrip():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["pgadapter-emulator", "spanner-emulator"])
-    _build(c, "pgadapter-cli", "pgadapter-cli:local")
+def test_pgadapter_notnull_default_roundtrip(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image("pgadapter-cli", "pgadapter-cli:local")
     script = """
 DROP TABLE IF EXISTS defaults_demo;
 CREATE TABLE defaults_demo (
@@ -96,7 +45,7 @@ SELECT COUNT(*) AS c2 FROM defaults_demo WHERE id=2;
 DROP TABLE defaults_demo;
 exit
 """
-    out = _run(c, "pgadapter-cli:local", "pgadapter-cli", script, _pg_env())
+    out = run_cli("pgadapter-cli:local", "pgadapter-cli", script, _pg_env())
     low = out.lower()
     assert "def" in low
     # Either an error happened, or count for id=2 is 0 (not inserted)
@@ -109,11 +58,12 @@ exit
 
 
 @pytest.mark.e2e
-def test_pgadapter_utf8_emoji_roundtrip():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["pgadapter-emulator", "spanner-emulator"])
-    _build(c, "pgadapter-cli", "pgadapter-cli:local")
+def test_pgadapter_utf8_emoji_roundtrip(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image("pgadapter-cli", "pgadapter-cli:local")
     jp = "こんにちは"
     em = "🚀"
     script = f"""
@@ -124,16 +74,17 @@ SELECT txt FROM utf8_demo WHERE id=1;
 DROP TABLE utf8_demo;
 exit
 """
-    out = _run(c, "pgadapter-cli:local", "pgadapter-cli", script, _pg_env())
+    out = run_cli("pgadapter-cli:local", "pgadapter-cli", script, _pg_env())
     assert jp in out and em in out
 
 
 @pytest.mark.e2e
-def test_pgadapter_default_tx_read_only_or_skip():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["pgadapter-emulator", "spanner-emulator"])
-    _build(c, "pgadapter-cli", "pgadapter-cli:local")
+def test_pgadapter_default_tx_read_only_or_skip(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image("pgadapter-cli", "pgadapter-cli:local")
     script = """
 DROP TABLE IF EXISTS ro2_demo;
 CREATE TABLE ro2_demo (id BIGINT PRIMARY KEY, v INT);
@@ -145,7 +96,7 @@ SET default_transaction_read_only = off;
 DROP TABLE ro2_demo;
 exit
 """
-    out = _run(c, "pgadapter-cli:local", "pgadapter-cli", script, _pg_env()).lower()
+    out = run_cli("pgadapter-cli:local", "pgadapter-cli", script, _pg_env()).lower()
     if "default_transaction_read_only" not in out:
         pytest.skip("default_transaction_read_only not supported by this build")
     assert "error" in out or "read only" in out
@@ -163,11 +114,12 @@ def _neo_env() -> dict[str, str]:
 
 
 @pytest.mark.e2e
-def test_neo4j_composite_unique_constraint_violation():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["neo4j-emulator"])
-    _build(c, "neo4j-cli", "neo4j-cli:local")
+def test_neo4j_composite_unique_constraint_violation(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["neo4j-emulator"])
+    build_image("neo4j-cli", "neo4j-cli:local")
     script = """
 CREATE CONSTRAINT comp_unique IF NOT EXISTS FOR (u:UUser) REQUIRE (u.first, u.last) IS UNIQUE;
 CREATE (u1:UUser {first:'A', last:'B'});
@@ -177,7 +129,7 @@ MATCH (u:UUser) DETACH DELETE u;
 DROP CONSTRAINT comp_unique IF EXISTS;
 exit
 """
-    out = _run(c, "neo4j-cli:local", "neo4j-cli", script, _neo_env()).lower()
+    out = run_cli("neo4j-cli:local", "neo4j-cli", script, _neo_env()).lower()
     assert (
         ("constraint" in out and "violation" in out)
         or ("already exists" in out)
@@ -186,11 +138,12 @@ exit
 
 
 @pytest.mark.e2e
-def test_neo4j_index_create_drop_and_show():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["neo4j-emulator"])
-    _build(c, "neo4j-cli", "neo4j-cli:local")
+def test_neo4j_index_create_drop_and_show(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["neo4j-emulator"])
+    build_image("neo4j-cli", "neo4j-cli:local")
     script = """
 CREATE INDEX idx_uuser_prop IF NOT EXISTS FOR (n:UUser2) ON (n.p);
 CALL db.indexes();
@@ -198,7 +151,7 @@ DROP INDEX idx_uuser_prop IF EXISTS;
 CALL db.indexes();
 exit
 """
-    out = _run(c, "neo4j-cli:local", "neo4j-cli", script, _neo_env()).lower()
+    out = run_cli("neo4j-cli:local", "neo4j-cli", script, _neo_env()).lower()
     # We just ensure indexes listing can be called without errors and mentions
     assert ("index" in out) or ("call db.indexes" in out)
 
@@ -214,11 +167,12 @@ def _es_env() -> dict[str, str]:
 
 
 @pytest.mark.e2e
-def test_elasticsearch_bulk_minimal_success_or_400():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["elasticsearch-emulator"])
-    _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
+def test_elasticsearch_bulk_minimal_success_or_400(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["elasticsearch-emulator"])
+    build_image("elasticsearch-cli", "elasticsearch-cli:local")
     idx = "bulk_min"
     # Try bulk NLJSON; CLI may not preserve newlines, accept 400 as valid outcome
     script = f"""
@@ -232,16 +186,17 @@ POST /_bulk
 DELETE /{idx};
 \\q
 """
-    out = _run(c, "elasticsearch-cli:local", "elasticsearch-cli", script, _es_env())
+    out = run_cli("elasticsearch-cli:local", "elasticsearch-cli", script, _es_env())
     assert ("created" in out) or ("HTTP 400" in out)
 
 
 @pytest.mark.e2e
-def test_elasticsearch_refresh_visibility():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["elasticsearch-emulator"])
-    _build(c, "elasticsearch-cli", "elasticsearch-cli:local")
+def test_elasticsearch_refresh_visibility(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["elasticsearch-emulator"])
+    build_image("elasticsearch-cli", "elasticsearch-cli:local")
     idx = "vis_min"
     script = f"""
 PUT /{idx} {{"settings": {{"number_of_shards": 1, "number_of_replicas": 0}}}};
@@ -252,8 +207,8 @@ GET /{idx}/_search {{"query": {{"match": {{"name": "no_refresh"}}}}}};
 DELETE /{idx};
 \\q
 """
-    out = _run(
-        c, "elasticsearch-cli:local", "elasticsearch-cli", script, _es_env()
+    out = run_cli(
+        "elasticsearch-cli:local", "elasticsearch-cli", script, _es_env()
     ).lower()
     # If first search already finds doc (auto refresh), still acceptable; ensure second search finds it
     assert "no_refresh" in out
@@ -267,11 +222,12 @@ def _q_env() -> dict[str, str]:
 
 
 @pytest.mark.e2e
-def test_qdrant_scroll_pagination():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["qdrant-emulator"])
-    _build(c, "qdrant-cli", "qdrant-cli:local")
+def test_qdrant_scroll_pagination(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["qdrant-emulator"])
+    build_image("qdrant-cli", "qdrant-cli:local")
     col = "scroll_min"
     script = textwrap.dedent(
         f"""
@@ -289,16 +245,17 @@ def test_qdrant_scroll_pagination():
         \\q
         """
     ).lstrip("\n")
-    out = _run(c, "qdrant-cli:local", "qdrant-cli", script, _q_env())
+    out = run_cli("qdrant-cli:local", "qdrant-cli", script, _q_env())
     assert '"status": "ok"' in out
 
 
 @pytest.mark.e2e
-def test_qdrant_score_threshold_border():
-    c = _dc()
-    _need_net(c)
-    _need(c, ["qdrant-emulator"])
-    _build(c, "qdrant-cli", "qdrant-cli:local")
+def test_qdrant_score_threshold_border(
+    ensure_network, require_services, build_image, run_cli
+):
+    ensure_network()
+    require_services(["qdrant-emulator"])
+    build_image("qdrant-cli", "qdrant-cli:local")
     col = "thresh_min"
     script = textwrap.dedent(
         f"""
@@ -319,7 +276,7 @@ def test_qdrant_score_threshold_border():
         \\q
         """
     ).lstrip("\n")
-    out = _run(c, "qdrant-cli:local", "qdrant-cli", script, _q_env()).lower()
+    out = run_cli("qdrant-cli:local", "qdrant-cli", script, _q_env()).lower()
     if "http 400" in out:
         pytest.skip("Qdrant score_threshold not supported by this build")
     # Expect only id=1

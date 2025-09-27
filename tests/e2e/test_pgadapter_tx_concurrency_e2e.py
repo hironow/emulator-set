@@ -8,38 +8,6 @@ available in the pgAdapter build, the test skips.
 import textwrap
 import time
 import pytest
-import docker
-
-
-NETWORK_NAME = "emulator-network"
-
-
-def _docker_client() -> docker.DockerClient:
-    try:
-        client = docker.from_env()
-        client.ping()
-        return client
-    except Exception as e:
-        pytest.skip(f"docker not available: {e}")
-
-
-def _ensure_network(client: docker.DockerClient) -> None:
-    if not client.networks.list(names=[NETWORK_NAME]):
-        pytest.skip("emulator-network not found. Start emulators first.")
-
-
-def _ensure_services_running(client: docker.DockerClient, names: list[str]) -> None:
-    running = {c.name for c in client.containers.list()}
-    missing = [n for n in names if n not in running]
-    if missing:
-        pytest.skip(f"required emulator containers not running: {', '.join(missing)}")
-
-
-def _build_image(client: docker.DockerClient, path: str, tag: str) -> None:
-    try:
-        client.images.build(path=path, tag=tag, rm=True)
-    except Exception as e:
-        pytest.skip(f"failed to build image {tag} from {path}: {e}")
 
 
 def _env_pg() -> dict[str, str]:
@@ -53,11 +21,12 @@ def _env_pg() -> dict[str, str]:
 
 
 @pytest.mark.e2e
-def test_pgadapter_concurrent_update_conflict_or_skip():
-    client = _docker_client()
-    _ensure_network(client)
-    _ensure_services_running(client, ["pgadapter-emulator", "spanner-emulator"])
-    _build_image(client, path="pgadapter-cli", tag="pgadapter-cli:local")
+def test_pgadapter_concurrent_update_conflict_or_skip(
+    docker_client, ensure_network, require_services, build_image, e2e_network_name
+):
+    ensure_network()
+    require_services(["pgadapter-emulator", "spanner-emulator"])
+    build_image(path="pgadapter-cli", tag="pgadapter-cli:local")
 
     env = _env_pg()
 
@@ -70,11 +39,11 @@ def test_pgadapter_concurrent_update_conflict_or_skip():
         exit
         """
     ).lstrip("\n")
-    client.containers.run(
+    docker_client.containers.run(
         image="pgadapter-cli:local",
         command=["sh", "-lc", f"cat <<'EOF' | ./pgadapter-cli\n{prep}\nEOF"],
         environment=env,
-        network=NETWORK_NAME,
+        network=e2e_network_name,
         remove=True,
         stdout=True,
         stderr=True,
@@ -92,11 +61,11 @@ def test_pgadapter_concurrent_update_conflict_or_skip():
     ).lstrip("\n")
     heredoc_a = f"cat <<'EOF' | ./pgadapter-cli\n{script_a}\nEOF"
     try:
-        cont_a = client.containers.run(
+        cont_a = docker_client.containers.run(
             image="pgadapter-cli:local",
             command=["sh", "-lc", heredoc_a],
             environment=env,
-            network=NETWORK_NAME,
+            network=e2e_network_name,
             detach=True,
             stdout=True,
             stderr=True,
@@ -116,11 +85,11 @@ def test_pgadapter_concurrent_update_conflict_or_skip():
         exit
         """
     ).lstrip("\n")
-    client.containers.run(
+    docker_client.containers.run(
         image="pgadapter-cli:local",
         command=["sh", "-lc", f"cat <<'EOF' | ./pgadapter-cli\n{script_b}\nEOF"],
         environment=env,
-        network=NETWORK_NAME,
+        network=e2e_network_name,
         remove=True,
         stdout=True,
         stderr=True,
@@ -142,11 +111,11 @@ def test_pgadapter_concurrent_update_conflict_or_skip():
             """
         ).lstrip("\n")
         out = (
-            client.containers.run(
+            docker_client.containers.run(
                 image="pgadapter-cli:local",
                 command=["sh", "-lc", f"cat <<'EOF' | ./pgadapter-cli\n{verify}\nEOF"],
                 environment=env,
-                network=NETWORK_NAME,
+                network=e2e_network_name,
                 remove=True,
                 stdout=True,
                 stderr=True,
