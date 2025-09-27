@@ -14,10 +14,21 @@ from typing import Callable
 import pytest
 
 
-# Automatically mark everything in this directory as e2e
+# Automatically mark tests under tests/e2e/ as e2e (and only those)
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    from pathlib import Path
+
+    e2e_root = Path(__file__).parent.resolve()
     for item in items:
-        item.add_marker(pytest.mark.e2e)
+        path = Path(str(getattr(item, "path", ""))).resolve()
+        try:
+            # Python 3.9+: precise subtree check
+            if path.is_relative_to(e2e_root):
+                item.add_marker(pytest.mark.e2e)
+        except AttributeError:  # pragma: no cover
+            # Fallback for very old Python (not expected here)
+            if str(path).startswith(str(e2e_root)):
+                item.add_marker(pytest.mark.e2e)
 
 
 @pytest.fixture(scope="session")
