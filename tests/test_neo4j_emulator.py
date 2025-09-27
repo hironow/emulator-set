@@ -1,10 +1,9 @@
 import pytest
 import docker
 import time
-import httpx
 
 
-def test_neo4j_container_starts():
+def test_neo4j_container_starts(http_client):
     """Test that the Neo4j container starts and is healthy."""
     client = docker.from_env()
 
@@ -23,10 +22,10 @@ def test_neo4j_container_starts():
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = httpx.get("http://localhost:7474", timeout=1)
+            response = http_client.get("http://localhost:7474", timeout=1)
             if response.status_code == 200:
                 break
-        except httpx.HTTPError:
+        except Exception:
             if i == max_retries - 1:
                 pytest.fail("Neo4j HTTP endpoint is not accessible at localhost:7474")
             time.sleep(1)

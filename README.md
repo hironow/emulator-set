@@ -231,7 +231,6 @@ GitHub Actions workflow `.github/workflows/test-emulators.yaml`:
 
 - Installs dependencies via `uv sync --all-extras --frozen`（lockfile に準拠）
 - Runs tests via `uv run pytest`
-- A test validates the workflow file exists and uses up‑to‑date action versions
 
 Use `just gh-validate` locally to sanity‑check workflow files with `wrkflw`.
 

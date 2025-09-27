@@ -7,37 +7,35 @@ Why this may be skipped:
 """
 
 import uuid
-import httpx
 import pytest
 
 
-def _tasks_rest_supported(base_url: str) -> bool:
+def _tasks_rest_supported(http_client, base_url: str, project_id: str) -> bool:
     try:
-        res = httpx.get(
-            f"{base_url}/projects/{PROJECT_ID}/locations/{LOCATION}/queues", timeout=3.0
+        res = http_client.get(
+            f"{base_url}/projects/{project_id}/locations/{LOCATION}/queues", timeout=3.0
         )
         return res.status_code in (200, 404)
     except Exception:
         return False
 
 
-PROJECT_ID = "test-project"
 BASE = "http://localhost:9499/v2"
 LOCATION = "us-central1"
 
 
 @pytest.mark.parametrize("queue_id", ["q-default", "q-jobs"])
-def test_tasks_create_queue_and_list(queue_id):
-    if not _tasks_rest_supported(BASE):
+def test_tasks_create_queue_and_list(queue_id, project_id, http_client):
+    if not _tasks_rest_supported(http_client, BASE, project_id):
         pytest.skip(
             "Cloud Tasks REST API not implemented by emulator; skipping functional test"
         )
     # given: queue name
-    queue_name = f"projects/{PROJECT_ID}/locations/{LOCATION}/queues/{queue_id}-{uuid.uuid4().hex[:6]}"
+    queue_name = f"projects/{project_id}/locations/{LOCATION}/queues/{queue_id}-{uuid.uuid4().hex[:6]}"
 
     # when: create queue
-    create_url = f"{BASE}/projects/{PROJECT_ID}/locations/{LOCATION}/queues"
-    create_res = httpx.post(
+    create_url = f"{BASE}/projects/{project_id}/locations/{LOCATION}/queues"
+    create_res = http_client.post(
         create_url, json={"queue": {"name": queue_name}}, timeout=5.0
     )
 
@@ -45,8 +43,8 @@ def test_tasks_create_queue_and_list(queue_id):
     assert create_res.status_code in (200, 409), create_res.text
 
     # when: list queues
-    list_url = f"{BASE}/projects/{PROJECT_ID}/locations/{LOCATION}/queues"
-    list_res = httpx.get(list_url, timeout=5.0)
+    list_url = f"{BASE}/projects/{project_id}/locations/{LOCATION}/queues"
+    list_res = http_client.get(list_url, timeout=5.0)
 
     # then: response includes our queue or is a valid list
     assert list_res.status_code == 200, list_res.text

@@ -1,9 +1,6 @@
 import uuid
-import httpx
 import pytest
 
-
-PROJECT_ID = "test-project"
 BASE = "http://localhost:9099/identitytoolkit.googleapis.com/v1"
 
 
@@ -14,14 +11,14 @@ BASE = "http://localhost:9099/identitytoolkit.googleapis.com/v1"
         ("bob", "S3cret#123"),
     ],
 )
-def test_auth_signup_and_signin(email_prefix, password):
+def test_auth_signup_and_signin(email_prefix, password, http_client):
     # given: unique email and password
     unique = uuid.uuid4().hex[:8]
     email = f"{email_prefix}.{unique}@example.com"
 
     # when: sign up (create user)
     signup_url = f"{BASE}/accounts:signUp?key=fake-key"
-    signup_res = httpx.post(
+    signup_res = http_client.post(
         signup_url,
         json={"email": email, "password": password, "returnSecureToken": True},
         timeout=5.0,
@@ -35,7 +32,7 @@ def test_auth_signup_and_signin(email_prefix, password):
 
     # when: sign in with the same credentials
     signin_url = f"{BASE}/accounts:signInWithPassword?key=fake-key"
-    signin_res = httpx.post(
+    signin_res = http_client.post(
         signin_url,
         json={"email": email, "password": password, "returnSecureToken": True},
         timeout=5.0,

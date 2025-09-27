@@ -20,6 +20,18 @@ test path='tests/' opts='-v':
     uv run pytest '{{path}}' '{{opts}}'
     @echo '✅ Tests finished.'
 
+# Fast tests (exclude e2e)
+test-fast:
+    @echo '🧪 Running tests via uv: pytest tests/ -v -m "not e2e"'
+    uv run pytest tests/ -v -m "not e2e"
+    @echo '✅ Fast tests finished.'
+
+# E2E tests only
+test-e2e:
+    @echo '🧪 Running e2e tests via uv: pytest tests/e2e -v -m e2e -ra'
+    uv run pytest tests/e2e -v -m e2e -ra
+    @echo '✅ E2E tests finished.'
+
 # Format ruff
 format path='tests/':
     @echo '🔧 Formatting code with ruff...'

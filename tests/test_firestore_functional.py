@@ -1,10 +1,8 @@
 import uuid
-import httpx
 import pytest
 
 
-PROJECT_ID = "test-project"
-BASE = f"http://localhost:8080/v1/projects/{PROJECT_ID}/databases/(default)"
+BASE_TPL = "http://localhost:8080/v1/projects/{project_id}/databases/(default)"
 
 
 def _to_fs_fields(obj):
@@ -61,21 +59,24 @@ def _from_fs_fields(fields):
         ("profiles", {"username": "bob", "meta": {"visits": 3}}),
     ],
 )
-def test_firestore_create_and_get_document(collection, payload):
+def test_firestore_create_and_get_document(
+    collection, payload, project_id, http_client
+):
     # given: unique document id and payload
     doc_id = f"test-{uuid.uuid4().hex[:8]}"
-    create_url = f"{BASE}/documents/{collection}?documentId={doc_id}"
-    get_url = f"{BASE}/documents/{collection}/{doc_id}"
+    base = BASE_TPL.format(project_id=project_id)
+    create_url = f"{base}/documents/{collection}?documentId={doc_id}"
+    get_url = f"{base}/documents/{collection}/{doc_id}"
 
     body = {"fields": _to_fs_fields(payload)}
 
     # when: creating document via REST API
-    create_res = httpx.post(create_url, json=body, timeout=5.0)
+    create_res = http_client.post(create_url, json=body, timeout=5.0)
 
     # then: creation succeeds and document can be fetched with same data
     assert create_res.status_code in (200, 201), create_res.text
 
-    fetch_res = httpx.get(get_url, timeout=5.0)
+    fetch_res = http_client.get(get_url, timeout=5.0)
     assert fetch_res.status_code == 200, fetch_res.text
 
     data = fetch_res.json()

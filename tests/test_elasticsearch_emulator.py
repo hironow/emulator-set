@@ -1,10 +1,9 @@
 import pytest
 import docker
 import time
-import httpx
 
 
-def test_elasticsearch_container_starts():
+def test_elasticsearch_container_starts(http_client):
     """Test that the Elasticsearch container starts and is healthy."""
     client = docker.from_env()
 
@@ -23,10 +22,12 @@ def test_elasticsearch_container_starts():
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = httpx.get("http://localhost:9200/_cluster/health", timeout=1)
+            response = http_client.get(
+                "http://localhost:9200/_cluster/health", timeout=1
+            )
             if response.status_code == 200:
                 break
-        except httpx.HTTPError:
+        except Exception:
             if i == max_retries - 1:
                 pytest.fail(
                     "Elasticsearch REST API is not accessible at localhost:9200"
@@ -34,7 +35,7 @@ def test_elasticsearch_container_starts():
             time.sleep(1)
 
     # Verify Elasticsearch is ready
-    response = httpx.get("http://localhost:9200/_cluster/health", timeout=5)
+    response = http_client.get("http://localhost:9200/_cluster/health", timeout=5)
     assert response.status_code == 200, (
         f"Elasticsearch is not ready, status code: {response.status_code}"
     )
