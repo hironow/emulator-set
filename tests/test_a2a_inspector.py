@@ -1,9 +1,10 @@
 import pytest
 import docker
-import time
+import asyncio
 
 
-def test_a2a_inspector_container_starts(http_client):
+@pytest.mark.asyncio
+async def test_a2a_inspector_container_starts(http_client):
     """Test that the A2A Inspector container starts and is healthy."""
     client = docker.from_env()
 
@@ -22,12 +23,12 @@ def test_a2a_inspector_container_starts(http_client):
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = http_client.get("http://localhost:8081", timeout=1)
-            if response.status_code == 200:
-                break
+            async with http_client.get("http://localhost:8081") as response:
+                if response.status == 200:
+                    break
         except Exception:
             if i == max_retries - 1:
                 pytest.fail(
                     "A2A Inspector HTTP endpoint is not accessible at localhost:8081"
                 )
-            time.sleep(1)
+            await asyncio.sleep(1)

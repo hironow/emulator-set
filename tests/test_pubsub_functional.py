@@ -1,9 +1,9 @@
 """Pub/Sub functional test via REST.
 
 Why this may be skipped:
-- The emulator's REST endpoints can return errors (including HTTP/2 related)
-  depending on platform/version even when the service is healthy. To keep the
-  suite stable, we skip when REST calls don't return expected codes.
+- The emulator's REST endpoints can return errors depending on platform/version
+  even when the service is healthy. To keep the suite stable, we skip when REST
+  calls don't return expected codes.
 """
 
 import base64
@@ -62,7 +62,7 @@ async def test_pubsub_end_to_end_publish_and_pull(topic_base, project_id, http_c
     pulled = pull_json.get("receivedMessages", [])
 
     # then: at least one message is available and payload matches
-    assert pulled, pull_res.text
+    assert pulled, pull_text
     msg = pulled[0]["message"]
     assert base64.b64decode(msg["data"]).decode() == "hello-pubsub"
 

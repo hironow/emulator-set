@@ -1,9 +1,10 @@
 import pytest
 import docker
-import time
+import asyncio
 
 
-def test_elasticsearch_container_starts(http_client):
+@pytest.mark.asyncio
+async def test_elasticsearch_container_starts(http_client):
     """Test that the Elasticsearch container starts and is healthy."""
     client = docker.from_env()
 
@@ -22,26 +23,25 @@ def test_elasticsearch_container_starts(http_client):
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = http_client.get(
-                "http://localhost:9200/_cluster/health", timeout=1
-            )
-            if response.status_code == 200:
-                break
+            async with http_client.get(
+                "http://localhost:9200/_cluster/health"
+            ) as response:
+                if response.status == 200:
+                    break
         except Exception:
             if i == max_retries - 1:
                 pytest.fail(
                     "Elasticsearch REST API is not accessible at localhost:9200"
                 )
-            time.sleep(1)
+            await asyncio.sleep(1)
 
     # Verify Elasticsearch is ready
-    response = http_client.get("http://localhost:9200/_cluster/health", timeout=5)
-    assert response.status_code == 200, (
-        f"Elasticsearch is not ready, status code: {response.status_code}"
-    )
-
-    # Check cluster health
-    health_data = response.json()
+    async with http_client.get("http://localhost:9200/_cluster/health") as response:
+        assert response.status == 200, (
+            f"Elasticsearch is not ready, status: {response.status}"
+        )
+        # Check cluster health
+        health_data = await response.json()
     assert health_data["status"] in ["green", "yellow"], (
         f"Elasticsearch cluster is not healthy: {health_data['status']}"
     )

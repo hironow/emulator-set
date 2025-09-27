@@ -1,5 +1,6 @@
 import uuid
 import pytest
+from aiohttp import ClientTimeout
 
 
 BASE_TPL = "http://localhost:8080/v1/projects/{project_id}/databases/(default)"
@@ -59,7 +60,8 @@ def _from_fs_fields(fields):
         ("profiles", {"username": "bob", "meta": {"visits": 3}}),
     ],
 )
-def test_firestore_create_and_get_document(
+@pytest.mark.asyncio
+async def test_firestore_create_and_get_document(
     collection, payload, project_id, http_client
 ):
     # given: unique document id and payload
@@ -71,15 +73,15 @@ def test_firestore_create_and_get_document(
     body = {"fields": _to_fs_fields(payload)}
 
     # when: creating document via REST API
-    create_res = http_client.post(create_url, json=body, timeout=5.0)
+    async with http_client.post(
+        create_url, json=body, timeout=ClientTimeout(total=5.0)
+    ) as create_res:
+        # then: creation succeeds and document can be fetched with same data
+        assert create_res.status in (200, 201), await create_res.text()
 
-    # then: creation succeeds and document can be fetched with same data
-    assert create_res.status_code in (200, 201), create_res.text
-
-    fetch_res = http_client.get(get_url, timeout=5.0)
-    assert fetch_res.status_code == 200, fetch_res.text
-
-    data = fetch_res.json()
+    async with http_client.get(get_url, timeout=ClientTimeout(total=5.0)) as fetch_res:
+        assert fetch_res.status == 200, await fetch_res.text()
+        data = await fetch_res.json()
     assert "fields" in data
     fetched = _from_fs_fields(data["fields"])
 
