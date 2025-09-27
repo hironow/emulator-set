@@ -14,11 +14,29 @@ update:
     uv sync
     @echo 'Updated.'
 
-# Run pytest (uses uv)
+# Test pytest
 test path='tests/' opts='-v':
-    @echo '🧪 Running tests via uv: pytest' '{{path}}' '{{opts}}'; \
-    uv run pytest {{path}} {{opts}}; \
-    @echo '✅ Tests passed.'
+    @echo '🧪 Running tests via uv: pytest' '{{path}}' '{{opts}}'
+    uv run pytest '{{path}}' '{{opts}}'
+    @echo '✅ Tests finished.'
+
+# Fast tests (exclude e2e)
+test-fast:
+    @echo '🧪 Running tests via uv: pytest tests/ -v -m "not e2e"'
+    uv run pytest tests/ -v -m "not e2e"
+    @echo '✅ Fast tests finished.'
+
+# E2E tests only
+test-e2e:
+    @echo '🧪 Running e2e tests via uv: pytest tests/e2e -v -m e2e -ra'
+    uv run pytest tests/e2e -v -m e2e -ra
+    @echo '✅ E2E tests finished.'
+
+# Format ruff
+format path='tests/':
+    @echo '🔧 Formatting code with ruff...'
+    uv run ruff format '{{path}}'
+    @echo '✅ Code formatted.'
 
 
 # ---- WRKFLW helpers ----

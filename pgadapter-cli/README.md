@@ -142,11 +142,13 @@ While pgAdapter provides PostgreSQL protocol compatibility, there are some diffe
 If you cannot connect to pgAdapter:
 
 1. Verify pgAdapter is running:
+
    ```bash
    docker ps | grep pgadapter
    ```
 
 2. Check network connectivity:
+
    ```bash
    nc -zv localhost 5432
    ```
@@ -164,5 +166,6 @@ Common issues and solutions:
 ### Docker Network Issues
 
 If running in Docker and getting connection errors:
+
 - Ensure you're using the correct network (`emulator-network`)
 - Use container names instead of `localhost` when connecting between containers

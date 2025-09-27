@@ -6,9 +6,14 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-test-emulators
+  cancel-in-progress: true
+
 jobs:
-  test:
+  unit-integration-e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     
     steps:
     - uses: actions/checkout@v4
@@ -21,9 +26,9 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v5
     
-    - name: Install dependencies
+    - name: Install dependencies (uv sync --frozen)
       run: |
-        uv pip install --system -e ".[dev]"
+        uv sync --all-extras --frozen
     
     - name: Start Docker Compose services
       run: docker compose up -d
@@ -79,8 +84,33 @@ jobs:
         wait_tcp "Spanner gRPC" localhost 9010
         wait_tcp "pgAdapter" localhost 5432
     
-    - name: Run emulator tests
-      run: uv run pytest tests/ -v
+    - name: Run unit/integration tests (non-e2e)
+      run: uv run pytest tests/ -v -m "not e2e"
+
+    - name: Run e2e tests
+      shell: bash
+      run: |
+        set -o pipefail
+        uv run pytest tests/e2e -v -m e2e -ra | tee e2e.log
+
+    - name: Summarize skipped e2e tests
+      if: always()
+      shell: bash
+      run: |
+        echo "### E2E Skipped Tests" >> "$GITHUB_STEP_SUMMARY"
+        # Extract the short test summary info 'SKIPPED' lines if present
+        SKIPS=$(awk 'BEGIN{p=0} /^=+ short test summary info =+$/ {p=1; next} /^=+/ {if(p==1) p=0} p==1 {print}' e2e.log | grep '^SKIPPED' || true)
+        if [ -n "$SKIPS" ]; then
+          echo "$SKIPS" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+        else
+          # Fallback: scan any SKIPPED occurrences
+          ALT=$(grep -E " SKIPPED \(" e2e.log || true)
+          if [ -n "$ALT" ]; then
+            echo "$ALT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No skipped e2e tests." >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
     
     - name: Show Docker logs on failure
       if: failure()

@@ -1,10 +1,9 @@
 import pytest
 import docker
 import time
-import requests
 
 
-def test_firebase_container_starts():
+def test_firebase_container_starts(http_client):
     """Test that the Firebase container starts and is healthy."""
     client = docker.from_env()
 
@@ -23,10 +22,10 @@ def test_firebase_container_starts():
     max_retries = 30
     for i in range(max_retries):
         try:
-            response = requests.get("http://localhost:4000", timeout=1)
+            response = http_client.get("http://localhost:4000", timeout=1)
             if response.status_code == 200:
                 break
-        except requests.exceptions.RequestException:
+        except Exception:
             if i == max_retries - 1:
                 pytest.fail("Firebase UI is not accessible at localhost:4000")
             time.sleep(1)

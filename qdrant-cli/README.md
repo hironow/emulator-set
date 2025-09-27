@@ -30,6 +30,7 @@ docker compose run --rm qdrant-cli
 ### Commands
 
 #### Special Commands
+
 - `\h` or `\help`: Show help message
 - `\q` or `\quit`: Exit the CLI
 - `\c` or `\clear`: Clear the screen
@@ -37,9 +38,11 @@ docker compose run --rm qdrant-cli
 - `\i` or `\info`: Show cluster information
 
 #### API Commands
+
 All API commands follow the format: `METHOD /path [body];`
 
 Examples:
+
 ```
 # Create a collection
 PUT /collections/test_collection {"vectors": {"size": 4, "distance": "Cosine"}};

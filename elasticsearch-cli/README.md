@@ -171,6 +171,7 @@ Bye!
 ## Dependencies
 
 The CLI uses the following Go packages:
+
 - `github.com/elastic/go-elasticsearch/v8` - Official Elasticsearch Go client
 - `github.com/olekukonko/tablewriter` - Table formatting
 - Standard library packages for HTTP, JSON, and terminal interaction
@@ -182,6 +183,7 @@ The CLI uses the following Go packages:
 If you cannot connect to Elasticsearch:
 
 1. Verify Elasticsearch is running:
+
    ```bash
    curl -X GET "localhost:9200/_cluster/health"
    ```
@@ -193,6 +195,7 @@ If you cannot connect to Elasticsearch:
 ### Authentication Errors
 
 If using a secured Elasticsearch instance:
+
 - Set `ELASTICSEARCH_USER` and `ELASTICSEARCH_PASSWORD` environment variables
 - Ensure the user has necessary permissions
 
