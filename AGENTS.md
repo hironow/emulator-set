@@ -77,6 +77,8 @@
             <rule>Use pathlib's Path for manipulating file paths. os.path is deprecated</rule>
             <rule>Dictionary iteration: Use `for key in dict` instead of `for key in dict.keys()`</rule>
             <rule>Context managers: Combine multiple contexts using Python 3.10+ parentheses</rule>
+            <rule>HTTP client: Prefer `aiohttp`. Do not use `requests` or `httpx`</rule>
+            <rule>Concurrency: Prefer `asyncio`. Do not use `anyio`</rule>
         </python-specific>
     </refactoring>
 
