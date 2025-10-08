@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.19
 
 ARG A2A_INSPECTOR_REPO=https://github.com/a2aproject/a2a-inspector.git
 ARG A2A_INSPECTOR_REF=main
