@@ -205,21 +205,17 @@ services:
     image: ghcr.io/mlflow/mlflow
     container_name: mlflow-server
     ports:
-      - "${MLFLOW_PORT:-5000}:5000"
+      - "${MLFLOW_PORT:-5252}:5000"
     volumes:
-      - ./mlflow-data:/mlruns
+      - ./mlflow-data:/mlflow
     command: >
       mlflow server
       --host 0.0.0.0
       --port 5000
-      --backend-store-uri file:///mlruns/backend
-      --default-artifact-root file:///mlruns/artifacts
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root file:///mlflow/artifacts
+      --allowed-hosts '*'
+      --cors-allowed-origins '*'
     restart: unless-stopped
 
   # Qdrant Vector Database

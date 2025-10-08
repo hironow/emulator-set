@@ -26,21 +26,23 @@ async def test_mlflow_e2e_logging_and_persistence(
         pytest.skip(f"mlflow client not available: {e}")
 
     # Point client at local tracking server
+    port = os.environ.get("MLFLOW_PORT", "5252")
     os.environ["MLFLOW_TRACKING_URI"] = os.environ.get(
-        "MLFLOW_TRACKING_URI", "http://localhost:5000"
+        "MLFLOW_TRACKING_URI", f"http://localhost:{port}"
     )
 
     # Wait for UI to be reachable (server ready)
+    base = f"http://localhost:{port}/"
     for _ in range(60):
         try:
-            async with http_client.get("http://localhost:5000/") as resp:
+            async with http_client.get(base) as resp:
                 if resp.status in (200, 302):
                     break
         except Exception:
             pass
         await asyncio.sleep(1)
     else:
-        pytest.skip("MLflow UI not reachable at http://localhost:5000/")
+        pytest.skip(f"MLflow UI not reachable at {base}")
 
     # --- Step 1: Write ---
     experiment_name = "E2E Test"
@@ -102,7 +104,7 @@ async def test_mlflow_e2e_logging_and_persistence(
     # Wait again for readiness
     for _ in range(60):
         try:
-            async with http_client.get("http://localhost:5000/") as resp:
+            async with http_client.get(base) as resp:
                 if resp.status in (200, 302):
                     break
         except Exception:

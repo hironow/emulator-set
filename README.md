@@ -63,7 +63,7 @@ ports via `.env.local`.
 | Elasticsearch  | `elasticsearch-emulator` | 9200 → 9200 (REST), 9300 → 9300     | HTTP   | ✓   |
 | Qdrant         | `qdrant-emulator`    | 6333 → 6333 (REST), 6334 → 6334 (gRPC)   | HTTP   | ✓   |
 | A2A Inspector  | `a2a-inspector`      | 8081 → 8080                              | HTTP   | –   |
-| MLflow         | `mlflow-server`      | 5000 → 5000                              | HTTP   | –   |
+| MLflow         | `mlflow-server`      | 5252 → 5000                              | HTTP   | –   |
 
 > Note: Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
 
@@ -167,7 +167,7 @@ export MLFLOW_TRACKING_URI=http://mlflow:5000
 - Elasticsearch: REST `localhost:9200`
 - Qdrant: REST `localhost:6333`
 - A2A Inspector: `http://localhost:8081`
-- MLflow UI: `http://localhost:5000`
+- MLflow UI: `http://localhost:5252`
 
 Note (A2A Inspector): Entering `localhost` in the web UI resolves inside the container; use `host.docker.internal` to reach the host.
 
@@ -274,4 +274,4 @@ Notes
 - Some PostgreSQL features may be limited compared to stock PostgreSQL.
 - Keep DDL simple (explicit PK, basic types) for best compatibility.
 # MLflow client (local host)
-export MLFLOW_TRACKING_URI=http://localhost:5000
+export MLFLOW_TRACKING_URI=http://localhost:5252
