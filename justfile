@@ -1,8 +1,8 @@
 # https://just.systems
 
-default:
-    @just --list --unsorted
+default: help
 
+# List available tasks
 help:
     @just --list --unsorted
 
@@ -20,7 +20,18 @@ clear yes='':
     @echo '   - Docker volumes: neo4j_data, neo4j_logs, neo4j_import, neo4j_plugins, qdrant_data, elasticsearch_data'
     @echo '   - Directories: ./firebase/data, ./mlflow-data'
     @if [ "{{yes}}" != 'yes' ]; then \
-        printf 'Proceed? (yes/no): ' ; read ans; if [ "$$ans" != 'yes' ]; then echo '🛑 Aborted.'; exit 1; fi; \
+        ans=''; \
+        if [ -r /dev/tty ]; then \
+          printf 'Proceed? (yes/no): '; \
+          IFS= read -r ans < /dev/tty || true; \
+        else \
+          printf 'Proceed? (yes/no): '; \
+          IFS= read -r ans || true; \
+        fi; \
+        case "$$ans" in \
+          y|Y|yes|YES) ;; \
+          *) echo '🛑 Aborted.'; exit 1 ;; \
+        esac; \
     else \
         echo '✅ Auto-confirmed (yes=yes)'; \
     fi
