@@ -13,7 +13,6 @@ Scope
 
 import random
 import string
-import textwrap
 import pytest
 
 

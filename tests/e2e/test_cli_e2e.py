@@ -87,3 +87,22 @@ def test_qdrant_cli_info_and_quit(
     }
     out = run_shell("qdrant-cli:local", "printf '\\\\i\\n\\\\q\\n' | ./qdrant-cli", env)
     assert ("Connected to Qdrant" in out) or ("Cluster Information" in out)
+
+
+@pytest.mark.e2e
+def test_bigtable_cli_help_and_exit(
+    ensure_network, require_services, build_image, run_shell
+):
+    ensure_network()
+    require_services(["bigtable-emulator"])
+    build_image(path="bigtable-cli", tag="bigtable-cli:local")
+    env = {
+        "BIGTABLE_EMULATOR_HOST": "bigtable-emulator:8086",
+        "BIGTABLE_PROJECT": "test-project",
+        "BIGTABLE_INSTANCE": "test-instance",
+    }
+    out = run_shell(
+        "bigtable-cli:local", "printf 'help\\nexit\\n' | ./bigtable-cli", env
+    )
+    assert ("Bigtable CLI" in out) or ("📚 Available Commands" in out)
+    assert ("Goodbye" in out) or ("Bye" in out)

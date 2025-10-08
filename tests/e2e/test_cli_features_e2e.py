@@ -11,14 +11,12 @@ Scope
 - Qdrant: payload filter + vector search
 """
 
-import random
-import string
-import textwrap
 import pytest
 
 
 def _rand(n: int = 6) -> str:
-    import string as _s, random as _r
+    import string as _s
+    import random as _r
 
     return "".join(_r.choices(_s.ascii_lowercase + _s.digits, k=n))
 

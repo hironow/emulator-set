@@ -15,5 +15,15 @@ firebase/data/
 *.log
 
 # Local environment files
+.env.keys
 .env.local
 !.env.local.example
+
+# Cache files
+.cache/
+# go cache
+.gomodcache/
+.gocache/
+# py cache
+__pycache__/
+*.pyc

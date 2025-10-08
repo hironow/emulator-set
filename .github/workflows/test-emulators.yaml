@@ -13,7 +13,7 @@ concurrency:
 jobs:
   unit-integration-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     
     steps:
     - uses: actions/checkout@v4
@@ -30,86 +30,52 @@ jobs:
       run: |
         uv sync --all-extras --frozen
     
+    - name: Pre-build selected images
+      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator
+
     - name: Start Docker Compose services
-      run: docker compose up -d
+      run: bash scripts/start-services.sh --no-build
     
     - name: Wait for services to be ready
-      shell: bash
-      run: |
-        set -e
-        echo "Waiting for emulator services..."
-
-        wait_http() {
-          local name="$1"; shift
-          local url="$1"; shift
-          local max=60
-          echo "- Waiting for $name at $url"
-          for i in $(seq 1 $max); do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
-            if [[ "$code" =~ ^2|3 ]]; then
-              echo "  $name is ready (HTTP $code)"
-              return 0
-            fi
-            sleep 2
-          done
-          echo "  ERROR: $name not ready in time"
-          return 1
-        }
-
-        wait_tcp() {
-          local name="$1"; shift
-          local host="$1"; shift
-          local port="$1"; shift
-          local max=60
-          echo "- Waiting for $name at $host:$port"
-          for i in $(seq 1 $max); do
-            if (echo > /dev/tcp/$host/$port) >/dev/null 2>&1; then
-              echo "  $name is ready"
-              return 0
-            fi
-            sleep 2
-          done
-          echo "  ERROR: $name not ready in time"
-          return 1
-        }
-
-        # HTTP-based services
-        wait_http "Firebase UI" "http://localhost:4000"
-        wait_http "Elasticsearch" "http://localhost:9200/_cluster/health"
-        wait_http "Qdrant" "http://localhost:6333/healthz"
-        wait_http "Neo4j HTTP" "http://localhost:7474"
-        wait_http "A2A Inspector" "http://localhost:8081"
-
-        # TCP-only checks
-        wait_tcp "Spanner gRPC" localhost 9010
-        wait_tcp "pgAdapter" localhost 5432
+      run: bash scripts/wait-for-services.sh --default 60 --a2a 180
     
     - name: Run unit/integration tests (non-e2e)
-      run: uv run pytest tests/ -v -m "not e2e"
+      run: bash scripts/run-tests-fast.sh
 
     - name: Run e2e tests
-      shell: bash
-      run: |
-        set -o pipefail
-        uv run pytest tests/e2e -v -m e2e -ra | tee e2e.log
+      run: bash scripts/run-tests-e2e.sh | tee e2e.log
 
     - name: Summarize skipped e2e tests
       if: always()
       shell: bash
       run: |
-        echo "### E2E Skipped Tests" >> "$GITHUB_STEP_SUMMARY"
-        # Extract the short test summary info 'SKIPPED' lines if present
-        SKIPS=$(awk 'BEGIN{p=0} /^=+ short test summary info =+$/ {p=1; next} /^=+/ {if(p==1) p=0} p==1 {print}' e2e.log | grep '^SKIPPED' || true)
-        if [ -n "$SKIPS" ]; then
-          echo "$SKIPS" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
-        else
-          # Fallback: scan any SKIPPED occurrences
-          ALT=$(grep -E " SKIPPED \(" e2e.log || true)
-          if [ -n "$ALT" ]; then
-            echo "$ALT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No skipped e2e tests." >> "$GITHUB_STEP_SUMMARY"
+        if [[ ! -f e2e.log ]]; then
+          summary=$'### E2E Skipped Tests\nNo e2e.log found.'
+          printf '%s\n' "$summary"
+          if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+            printf '%s\n' "$summary" >> "$GITHUB_STEP_SUMMARY"
           fi
+          exit 0
+        fi
+
+        tmp_summary="$(mktemp)"
+        {
+          echo "### E2E Skipped Tests"
+          SKIPS=$(awk 'BEGIN{p=0} /^=+ short test summary info =+$/ {p=1; next} /^=+/ {if(p==1) p=0} p==1 {print}' e2e.log | grep '^SKIPPED' || true)
+          if [[ -n "$SKIPS" ]]; then
+            echo "$SKIPS" | sed 's/^/- /'
+          else
+            ALT=$(grep -E " SKIPPED \(" e2e.log || true)
+            if [[ -n "$ALT" ]]; then
+              echo "$ALT" | sed 's/^/- /'
+            else
+              echo "No skipped e2e tests."
+            fi
+          fi
+        } | tee "$tmp_summary"
+
+        if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+          cat "$tmp_summary" >> "$GITHUB_STEP_SUMMARY"
         fi
     
     - name: Show Docker logs on failure

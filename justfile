@@ -50,21 +50,49 @@ test path='tests/' opts='-v':
 
 # Fast tests (exclude e2e)
 test-fast:
-    @echo '🧪 Running tests via uv: pytest tests/ -v -m "not e2e"'
-    uv run pytest tests/ -v -m "not e2e"
-    @echo '✅ Fast tests finished.'
+    @bash scripts/run-tests-fast.sh
 
 # E2E tests only
 test-e2e:
-    @echo '🧪 Running e2e tests via uv: pytest tests/e2e -v -m e2e -ra'
-    uv run pytest tests/e2e -v -m e2e -ra
-    @echo '✅ E2E tests finished.'
+    @bash scripts/run-tests-e2e.sh
+
+# Pre-build selected images
+prebuild images='a2a-inspector firebase-emulator':
+    @bash scripts/prebuild-images.sh {{images}}
+
+# Start services (detached)
+up nobuild='no':
+    @if [ "{{nobuild}}" = 'yes' ]; then \
+        bash scripts/start-services.sh --no-build; \
+    else \
+        bash scripts/start-services.sh; \
+    fi
+
+# Wait for services
+wait default='60' a2a='180':
+    @bash scripts/wait-for-services.sh --default {{default}} --a2a {{a2a}}
+
+# One-shot: prebuild -> up -> wait
+start:
+    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator
+    @bash scripts/start-services.sh
+    @bash scripts/wait-for-services.sh --default 60 --a2a 180
+
+# Stop emulators (with Firebase export)
+stop:
+    @bash scripts/stop-services.sh
 
 # Format ruff
 format path='tests/':
     @echo '🔧 Formatting code with ruff...'
     uv run ruff format '{{path}}'
     @echo '✅ Code formatted.'
+
+
+lint path='tests/' opts='--fix':
+    @echo '🔍 Linting code with ruff...'
+    uv run ruff check '{{path}}' '{{opts}}'
+    @echo '✅ Linting finished.'
 
 
 # ---- WRKFLW helpers ----
