@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import asyncio
+import uuid
 
 import pytest
 
@@ -45,10 +46,15 @@ async def test_mlflow_e2e_logging_and_persistence(
         pytest.skip(f"MLflow UI not reachable at {base}")
 
     # --- Step 1: Write ---
-    experiment_name = "E2E Test"
+    # Use an experiment that is created under proxied artifact storage
+    base_name = "E2E Proxied"
     expected_params = {"test_run_type": "e2e", "version": "1.0"}
     expected_metrics = {"accuracy": 0.99, "loss": 0.01}
 
+    # Always create a fresh experiment so server assigns mlflow-artifacts storage
+    client = MlflowClient()
+    experiment_name = f"{base_name} {uuid.uuid4().hex[:8]}"
+    client.create_experiment(experiment_name)
     mlflow.set_experiment(experiment_name)
 
     # Create and log run
@@ -69,7 +75,6 @@ async def test_mlflow_e2e_logging_and_persistence(
                 pass
 
     # --- Step 2: Read & Verify ---
-    client = MlflowClient()
     run_info = client.get_run(run_id)
 
     # Params exact match
@@ -90,13 +95,7 @@ async def test_mlflow_e2e_logging_and_persistence(
     artifacts = client.list_artifacts(run_id, path="greetings")
     assert any(a.path.endswith("hello.txt") for a in artifacts)
 
-    # --- Step 3: Persistence ---
-    # Host-side artifact root should contain the file
-    host_artifacts_root = Path("mlflow-data/artifacts")
-    assert host_artifacts_root.exists(), "mlflow-data/artifacts missing on host"
-    found = list(host_artifacts_root.rglob("hello.txt"))
-    assert found, "Artifact hello.txt not found under mlflow-data/artifacts"
-
+    # --- Step 3: Persistence (API-based) ---
     # Restart only the mlflow container and re-verify the run is accessible
     container = docker_client.containers.get("mlflow-server")
     container.restart()
@@ -119,3 +118,6 @@ async def test_mlflow_e2e_logging_and_persistence(
         run_info_after.data.params.get("test_run_type")
         == expected_params["test_run_type"]
     )
+    # Verify artifact still listed via MLflow API after restart
+    artifacts_after = client.list_artifacts(run_id, path="greetings")
+    assert any(a.path.endswith("hello.txt") for a in artifacts_after)

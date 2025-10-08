@@ -178,7 +178,7 @@ Note (A2A Inspector): Entering `localhost` in the web UI resolves inside the con
 ## Data & Persistence
 
 - Firebase data persists under `firebase/data/`.
-- `just stop` exports Firebase data before shutdown.
+ - Firebase emulator exports on exit automatically (export-on-exit). `just stop` simply stops containers.
 - MLflow experiment data (backend + artifacts) persists under `mlflow-data/`.
 
 ## CLI Tools (details)

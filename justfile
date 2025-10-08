@@ -14,52 +14,6 @@ update:
     uv sync
     @echo 'Updated.'
 
-# Clear emulator persistent volumes (interactive)
-clear yes='':
-    @echo '⚠️  This will delete all emulator persistent data:'
-    @echo '   - Docker volumes: neo4j_data, neo4j_logs, neo4j_import, neo4j_plugins, qdrant_data, elasticsearch_data'
-    @echo '   - Directories: ./firebase/data, ./mlflow-data'
-    @if [ "{{yes}}" != 'yes' ]; then \
-        ans=''; \
-        if [ -r /dev/tty ]; then \
-          printf 'Proceed? (yes/no): '; \
-          IFS= read -r ans < /dev/tty || true; \
-        else \
-          printf 'Proceed? (yes/no): '; \
-          IFS= read -r ans || true; \
-        fi; \
-        case "$$ans" in \
-          y|Y|yes|YES) ;; \
-          *) echo '🛑 Aborted.'; exit 1 ;; \
-        esac; \
-    else \
-        echo '✅ Auto-confirmed (yes=yes)'; \
-    fi
-    @if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then \
-        echo '🧹 Removing containers and named volumes via docker compose...'; \
-        docker compose -f docker-compose.yaml down --volumes --remove-orphans || echo '⚠️  docker compose down failed; continuing...'; \
-    elif command -v docker-compose >/dev/null 2>&1; then \
-        echo '🧹 Removing containers and named volumes via docker-compose...'; \
-        docker-compose -f docker-compose.yaml down --volumes --remove-orphans || echo '⚠️  docker-compose down failed; continuing...'; \
-    else \
-        echo 'ℹ️  docker compose/docker-compose not found. Skipping volume removal.'; \
-    fi
-    @if [ -d ./firebase/data ]; then \
-        echo '🧼 Clearing ./firebase/data by recreating directory...'; \
-        rm -rf ./firebase/data && mkdir -p ./firebase/data; \
-    else \
-        echo 'ℹ️  Creating ./firebase/data...'; \
-        mkdir -p ./firebase/data; \
-    fi
-    @if [ -d ./mlflow-data ]; then \
-        echo '🧼 Clearing ./mlflow-data by recreating directory...'; \
-        rm -rf ./mlflow-data && mkdir -p ./mlflow-data; \
-    else \
-        echo 'ℹ️  Creating ./mlflow-data...'; \
-        mkdir -p ./mlflow-data; \
-    fi
-    @echo '✅ Cleared.'
-
 # Test pytest
 test path='tests/' opts='-v':
     @echo '🧪 Running tests via uv: pytest' '{{path}}' '{{opts}}'
@@ -99,6 +53,7 @@ start:
 # Stop emulators (with Firebase export)
 stop:
     @bash scripts/stop-services.sh
+
 
 # Format ruff
 format path='tests/':

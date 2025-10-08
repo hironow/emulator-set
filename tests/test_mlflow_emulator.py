@@ -21,6 +21,7 @@ async def test_mlflow_container_starts(http_client):
 
     # Check if MLflow UI is accessible
     import os
+
     port = os.environ.get("MLFLOW_PORT", "5252")
     base = f"http://localhost:{port}/"
     max_retries = 30
