@@ -157,6 +157,10 @@ export BIGTABLE_EMULATOR_HOST=bigtable-emulator:8086
 
 # MLflow client (inside another container)
 export MLFLOW_TRACKING_URI=http://mlflow:5000
+
+**macOS Port Conflicts**
+- On macOS, Control Center (AirPlay) commonly binds ports `5000` and `7000`.
+- Avoid exposing emulator services on these host ports. This repo uses `5252` for MLflow by default.
 ```
 
 ## Access
