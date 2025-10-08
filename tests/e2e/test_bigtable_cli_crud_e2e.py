@@ -48,4 +48,3 @@ exit
     assert "bigtable cli" in low or "available commands" in low
     assert "alice" in low
     assert table in out
-

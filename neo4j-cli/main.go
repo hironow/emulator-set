@@ -174,7 +174,7 @@ func showSchema(ctx context.Context, session neo4j.SessionWithContext) {
 	// Show constraints
 	fmt.Println("\n📊 Constraints:")
 	constraintQuery := "SHOW CONSTRAINTS"
-	
+
 	result, err := session.Run(ctx, constraintQuery, nil)
 	if err != nil {
 		// Try older syntax if new one fails
@@ -200,7 +200,7 @@ func showSchema(ctx context.Context, session neo4j.SessionWithContext) {
 	// Show indexes
 	fmt.Println("\n📑 Indexes:")
 	indexQuery := "SHOW INDEXES"
-	
+
 	result, err = session.Run(ctx, indexQuery, nil)
 	if err != nil {
 		// Try older syntax if new one fails
@@ -279,7 +279,7 @@ func executeQuery(ctx context.Context, session neo4j.SessionWithContext, query s
 	} else {
 		// No records returned (write query)
 		counters := summary.Counters()
-		
+
 		var changes []string
 		if counters.NodesCreated() > 0 {
 			changes = append(changes, fmt.Sprintf("%d nodes created", counters.NodesCreated()))

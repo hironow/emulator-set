@@ -152,7 +152,7 @@ func listCollections() {
 
 	result.ForEach(func(key, value gjson.Result) bool {
 		name := value.Get("name").String()
-		
+
 		// Get collection details
 		detailResp, err := makeRequest("GET", fmt.Sprintf("/collections/%s", name), nil)
 		if err == nil {
@@ -162,7 +162,7 @@ func listCollections() {
 			vectorSize := details.Get("config.params.vectors.size").String()
 			distance := details.Get("config.params.vectors.distance").String()
 			config := fmt.Sprintf("size=%s, distance=%s", vectorSize, distance)
-			
+
 			table.Append([]string{name, vectorsCount, pointsCount, config})
 		}
 		return true
@@ -179,7 +179,7 @@ func showClusterInfo() {
 	}
 
 	result := gjson.Parse(resp)
-	
+
 	fmt.Println("\nCluster Information:")
 	fmt.Printf("Title: %s\n", result.Get("title").String())
 	fmt.Printf("Version: %s\n", result.Get("version").String())
@@ -189,7 +189,7 @@ func showClusterInfo() {
 
 func executeCommand(command string) {
 	start := time.Now()
-	
+
 	parts := strings.SplitN(command, " ", 3)
 	if len(parts) < 2 {
 		fmt.Println("Invalid command format. Use: METHOD /path [body]")
@@ -199,7 +199,7 @@ func executeCommand(command string) {
 	method := strings.ToUpper(parts[0])
 	path := parts[1]
 	var body []byte
-	
+
 	if len(parts) == 3 {
 		body = []byte(parts[2])
 	}
@@ -223,17 +223,17 @@ func executeCommand(command string) {
 
 func makeRequest(method, path string, body []byte) (string, error) {
 	url := fmt.Sprintf("http://%s:%s%s", host, port, path)
-	
+
 	var req *http.Request
 	var err error
-	
+
 	if body != nil {
 		req, err = http.NewRequest(method, url, bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req, err = http.NewRequest(method, url, nil)
 	}
-	
+
 	if err != nil {
 		return "", err
 	}

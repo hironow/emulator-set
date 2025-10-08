@@ -34,7 +34,7 @@ func getConnStr() string {
 	if sslmode == "" {
 		sslmode = "disable"
 	}
-	
+
 	return fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=%s",
 		host, port, user, dbname, sslmode)
 }
@@ -42,7 +42,7 @@ func getConnStr() string {
 func main() {
 	fmt.Println("🚀 pgAdapter CLI for Spanner Emulator")
 	fmt.Println("======================================")
-	
+
 	// Connect to database
 	connStr := getConnStr()
 	db, err := sql.Open("postgres", connStr)
@@ -81,7 +81,7 @@ func main() {
 		}
 
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Handle special commands
 		if len(multiline) == 0 {
 			switch strings.ToLower(line) {
@@ -111,7 +111,7 @@ func main() {
 		if strings.HasSuffix(line, ";") {
 			query := strings.Join(multiline, " ")
 			multiline = nil
-			
+
 			executeQuery(ctx, db, query)
 		}
 	}
@@ -164,7 +164,7 @@ func showTables(ctx context.Context, db *sql.DB) {
 		WHERE table_schema = ''
 		ORDER BY table_name
 	`
-	
+
 	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		fmt.Printf("❌ Error: %v\n", err)
@@ -195,13 +195,13 @@ func showTables(ctx context.Context, db *sql.DB) {
 
 func executeQuery(ctx context.Context, db *sql.DB, query string) {
 	start := time.Now()
-	
+
 	// Remove trailing semicolon for cleaner processing
 	query = strings.TrimSuffix(strings.TrimSpace(query), ";")
-	
+
 	// Check if it's a SELECT query
 	isSelect := strings.HasPrefix(strings.ToUpper(strings.TrimSpace(query)), "SELECT")
-	
+
 	if isSelect {
 		rows, err := db.QueryContext(ctx, query)
 		if err != nil {
@@ -209,14 +209,14 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 			return
 		}
 		defer rows.Close()
-		
+
 		// Get column names
 		columns, err := rows.Columns()
 		if err != nil {
 			fmt.Printf("❌ Error getting columns: %v\n\n", err)
 			return
 		}
-		
+
 		// Prepare table writer
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader(columns)
@@ -229,7 +229,7 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 		table.SetRowSeparator("─")
 		table.SetHeaderLine(true)
 		table.SetBorder(true)
-		
+
 		// Scan rows
 		rowCount := 0
 		values := make([]sql.RawBytes, len(columns))
@@ -237,14 +237,14 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 		for i := range values {
 			scanArgs[i] = &values[i]
 		}
-		
+
 		for rows.Next() {
 			err := rows.Scan(scanArgs...)
 			if err != nil {
 				fmt.Printf("❌ Error scanning row: %v\n", err)
 				continue
 			}
-			
+
 			var row []string
 			for _, col := range values {
 				if col == nil {
@@ -256,13 +256,13 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 			table.Append(row)
 			rowCount++
 		}
-		
+
 		fmt.Println()
 		table.Render()
-		
+
 		elapsed := time.Since(start)
 		fmt.Printf("\n(%d rows) Time: %v\n\n", rowCount, elapsed.Round(time.Millisecond))
-		
+
 	} else {
 		// Execute non-SELECT query
 		result, err := db.ExecContext(ctx, query)
@@ -270,10 +270,10 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 			fmt.Printf("❌ Error: %v\n\n", err)
 			return
 		}
-		
+
 		rowsAffected, _ := result.RowsAffected()
 		elapsed := time.Since(start)
-		
+
 		fmt.Printf("\n✅ Query OK, %d rows affected (%v)\n\n", rowsAffected, elapsed.Round(time.Millisecond))
 	}
 }

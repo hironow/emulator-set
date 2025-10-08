@@ -45,6 +45,8 @@ services:
     image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
     pull_policy: always
     container_name: bigtable-emulator
+    # Apple Silicon (arm64): Bigtable emulator image is amd64-only; run under emulation
+    platform: linux/amd64
     command: ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port=0.0.0.0:8086"]
     ports:
       - "${BIGTABLE_PORT:-8086}:8086"  # gRPC endpoint
@@ -178,16 +180,18 @@ services:
     profiles:
       - cli  # Only run when explicitly requested
 
-  # A2A Inspector
+  # A2A Inspector (real build using local multi-stage Dockerfile)
   a2a-inspector:
     build:
-      context: https://github.com/a2aproject/a2a-inspector.git
+      context: ./a2a-inspector
       dockerfile: Dockerfile
+      args:
+        A2A_INSPECTOR_REPO: ${A2A_INSPECTOR_REPO:-https://github.com/a2aproject/a2a-inspector.git}
+        A2A_INSPECTOR_REF: ${A2A_INSPECTOR_REF:-main}
     container_name: a2a-inspector
+    platform: linux/amd64
     ports:
       - "${A2A_INSPECTOR_PORT:-8081}:8080"
-    environment:
-      - PORT=8080
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s

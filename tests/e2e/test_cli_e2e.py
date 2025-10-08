@@ -101,6 +101,8 @@ def test_bigtable_cli_help_and_exit(
         "BIGTABLE_PROJECT": "test-project",
         "BIGTABLE_INSTANCE": "test-instance",
     }
-    out = run_shell("bigtable-cli:local", "printf 'help\\nexit\\n' | ./bigtable-cli", env)
+    out = run_shell(
+        "bigtable-cli:local", "printf 'help\\nexit\\n' | ./bigtable-cli", env
+    )
     assert ("Bigtable CLI" in out) or ("📚 Available Commands" in out)
     assert ("Goodbye" in out) or ("Bye" in out)

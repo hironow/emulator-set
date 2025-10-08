@@ -70,6 +70,8 @@ ports via `.env.local`.
 | Qdrant         | `qdrant-emulator`    | 6333 → 6333 (REST), 6334 → 6334 (gRPC)   | HTTP   | ✓   |
 | A2A Inspector  | `a2a-inspector`      | 8081 → 8080                              | HTTP   | –   |
 
+> ℹ️ Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
+
 CLI availability (✓) means a matching Go-based REPL is included and runnable
 via Docker Compose profiles.
 
@@ -219,6 +221,10 @@ docker compose --profile cli run --rm bigtable-cli
 ```
 
 All CLIs support multi‑line input and print tabular results for readability.
+
+Apple Silicon (arm64)
+- Bigtable emulator image is amd64-only; the compose service sets `platform: linux/amd64` to run via emulation.
+- Performance impact is usually small for local testing. If you prefer native arm64, consider running the emulator directly on host via `gcloud`.
 
 ## Troubleshooting
 

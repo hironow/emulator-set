@@ -35,4 +35,3 @@ def test_bigtable_container_starts():
         if i == max_retries - 1:
             pytest.fail("Bigtable gRPC endpoint is not accessible at localhost:8086")
         time.sleep(1)
-
