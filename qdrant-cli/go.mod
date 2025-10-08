@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/tidwall/gjson v1.17.0
+	github.com/tidwall/gjson v1.18.0
 )
 
 require (

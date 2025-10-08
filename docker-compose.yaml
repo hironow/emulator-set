@@ -238,7 +238,7 @@ services:
 
   # Elasticsearch
   elasticsearch:
-    image: elasticsearch:8.11.1
+    image: elasticsearch:8.19.3
     container_name: elasticsearch-emulator
     ports:
       - "${ELASTICSEARCH_PORT:-9200}:9200"  # REST API

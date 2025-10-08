@@ -2,5 +2,7 @@ github.com/mattn/go-runewidth v0.0.9 h1:Lm995f3rfxdpd6TSmuVCHVb/QhupuXlYr8sCI/Qd
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/neo4j/neo4j-go-driver/v5 v5.14.0 h1:5x3vD4HkXQIktlG63jSG8v9iweGjmObIPU7Y9U0ThUI=
 github.com/neo4j/neo4j-go-driver/v5 v5.14.0/go.mod h1:Vff8OwT7QpLm7L2yYr85XNWe9Rbqlbeb9asNXJTHO4k=
+github.com/neo4j/neo4j-go-driver/v5 v5.28.3 h1:OHP/vzX0oZ2YUY5DnGUp7QY21BIpOzw+Pp+Dga8zYl4=
+github.com/neo4j/neo4j-go-driver/v5 v5.28.3/go.mod h1:Vff8OwT7QpLm7L2yYr85XNWe9Rbqlbeb9asNXJTHO4k=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
