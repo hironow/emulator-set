@@ -21,3 +21,9 @@ firebase/data/
 
 # Cache files
 .cache/
+# go cache
+.gomodcache/
+.gocache/
+# py cache
+__pycache__/
+*.pyc
