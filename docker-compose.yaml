@@ -200,6 +200,24 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # MLflow Tracking Server + UI
+  mlflow:
+    image: ghcr.io/mlflow/mlflow
+    container_name: mlflow-server
+    ports:
+      - "${MLFLOW_PORT:-5252}:5000"
+    volumes:
+      - ./mlflow-data:/mlflow:rw
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination file:///mlflow/artifacts
+      --allowed-hosts '*'
+      --cors-allowed-origins '*'
+    restart: unless-stopped
+
   # Qdrant Vector Database
   qdrant:
     image: qdrant/qdrant:latest

@@ -1,8 +1,8 @@
 # https://just.systems
 
-default:
-    @just --list --unsorted
+default: help
 
+# List available tasks
 help:
     @just --list --unsorted
 
@@ -13,34 +13,6 @@ update:
     uv lock --upgrade
     uv sync
     @echo 'Updated.'
-
-# Clear emulator persistent volumes (interactive)
-clear yes='':
-    @echo '⚠️  This will delete all emulator persistent data:'
-    @echo '   - Docker volumes: neo4j_data, neo4j_logs, neo4j_import, neo4j_plugins, qdrant_data, elasticsearch_data'
-    @echo '   - Directory: ./firebase/data'
-    @if [ "{{yes}}" != 'yes' ]; then \
-        printf 'Proceed? (yes/no): ' ; read ans; if [ "$$ans" != 'yes' ]; then echo '🛑 Aborted.'; exit 1; fi; \
-    else \
-        echo '✅ Auto-confirmed (yes=yes)'; \
-    fi
-    @if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then \
-        echo '🧹 Removing containers and named volumes via docker compose...'; \
-        docker compose -f docker-compose.yaml down --volumes --remove-orphans || echo '⚠️  docker compose down failed; continuing...'; \
-    elif command -v docker-compose >/dev/null 2>&1; then \
-        echo '🧹 Removing containers and named volumes via docker-compose...'; \
-        docker-compose -f docker-compose.yaml down --volumes --remove-orphans || echo '⚠️  docker-compose down failed; continuing...'; \
-    else \
-        echo 'ℹ️  docker compose/docker-compose not found. Skipping volume removal.'; \
-    fi
-    @if [ -d ./firebase/data ]; then \
-        echo '🧼 Clearing ./firebase/data by recreating directory...'; \
-        rm -rf ./firebase/data && mkdir -p ./firebase/data; \
-    else \
-        echo 'ℹ️  Creating ./firebase/data...'; \
-        mkdir -p ./firebase/data; \
-    fi
-    @echo '✅ Cleared.'
 
 # Test pytest
 test path='tests/' opts='-v':
@@ -81,6 +53,7 @@ start:
 # Stop emulators (with Firebase export)
 stop:
     @bash scripts/stop-services.sh
+
 
 # Format ruff
 format path='tests/':

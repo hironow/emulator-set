@@ -16,26 +16,26 @@ jobs:
     timeout-minutes: 15
     
     steps:
-    - uses: actions/checkout@v4
-    
+    - uses: actions/checkout@v5
+
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.13'
-    
+
     - name: Install uv
       uses: astral-sh/setup-uv@v5
-    
+
     - name: Install dependencies (uv sync --frozen)
       run: |
         uv sync --all-extras --frozen
-    
+
     - name: Pre-build selected images
       run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator
 
     - name: Start Docker Compose services
       run: bash scripts/start-services.sh --no-build
-    
+ 
     - name: Wait for services to be ready
       run: bash scripts/wait-for-services.sh --default 60 --a2a 180
     
