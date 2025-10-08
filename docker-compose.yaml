@@ -40,6 +40,40 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # Cloud Bigtable Emulator
+  bigtable-emulator:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
+    pull_policy: always
+    container_name: bigtable-emulator
+    command: ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port=0.0.0.0:8086"]
+    ports:
+      - "${BIGTABLE_PORT:-8086}:8086"  # gRPC endpoint
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8086 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Bigtable CLI
+  bigtable-cli:
+    depends_on:
+      - bigtable-emulator
+    build:
+      context: ./bigtable-cli
+      dockerfile: Dockerfile
+    container_name: bigtable-cli
+    environment:
+      - BIGTABLE_EMULATOR_HOST=bigtable-emulator:8086
+      - BIGTABLE_PROJECT=test-project
+      - BIGTABLE_INSTANCE=test-instance
+    stdin_open: true
+    tty: true
+    command: ["./bigtable-cli"]
+    profiles:
+      - cli  # Only run when explicitly requested
+
   # Spanner Emulator
   spanner-emulator:
     image: "gcr.io/cloud-spanner-emulator/emulator"

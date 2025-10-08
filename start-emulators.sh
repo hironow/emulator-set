@@ -129,6 +129,7 @@ wait_http "A2A Inspector" "http://localhost:8081"
 
 wait_tcp "Spanner gRPC" localhost 9010
 wait_tcp "pgAdapter" localhost 5432
+wait_tcp "Bigtable Emulator" localhost 8086
 
 # Follow logs (only in interactive mode)
 echo ""

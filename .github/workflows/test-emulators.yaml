@@ -83,6 +83,7 @@ jobs:
         # TCP-only checks
         wait_tcp "Spanner gRPC" localhost 9010
         wait_tcp "pgAdapter" localhost 5432
+        wait_tcp "Bigtable Emulator" localhost 8086
     
     - name: Run unit/integration tests (non-e2e)
       run: uv run pytest tests/ -v -m "not e2e"

@@ -27,7 +27,7 @@ echo ""
 
 # Check if emulator containers are running
 is_emulator_running() {
-    docker ps --format "{{.Names}}" 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector)" > /dev/null 2>&1
+    docker ps --format "{{.Names}}" 2>/dev/null | grep -E "(firebase-emulator|bigtable-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector)" > /dev/null 2>&1
 }
 
 # Check if any ports are in use
@@ -69,6 +69,12 @@ echo "Spanner Emulator Ports:"
 check_port 9010 "Spanner gRPC" "spanner-emulator"
 check_port 9020 "Spanner REST" "spanner-emulator"
 check_port 5432 "PostgreSQL Adapter" "pgadapter"
+
+echo ""
+
+# Bigtable ports
+echo "Bigtable Emulator Ports:"
+check_port 8086 "Bigtable gRPC" "bigtable-emulator"
 
 echo ""
 
@@ -128,7 +134,7 @@ check_service_port() {
 }
 
 # Check if any containers are running first
-if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector)" > /dev/null 2>&1; then
+if docker ps 2>/dev/null | grep -E "(firebase-emulator|bigtable-emulator|spanner-emulator|pgadapter|qdrant-emulator|neo4j-emulator|elasticsearch-emulator|a2a-inspector)" > /dev/null 2>&1; then
     # Firebase UI health check (check if port is listening)
     if check_service_port 4000 "Firebase UI"; then
         # Try to fetch the page content
@@ -157,6 +163,10 @@ if docker ps 2>/dev/null | grep -E "(firebase-emulator|spanner-emulator|pgadapte
     
     if check_service_port 5432 "PostgreSQL/pgAdapter"; then
         echo -e "${GREEN}✅ pgAdapter is running on port 5432${NC}"
+    fi
+    
+    if check_service_port 8086 "Bigtable"; then
+        echo -e "${GREEN}✅ Bigtable emulator is running on port 8086${NC}"
     fi
     
     if check_service_port 6333 "Qdrant REST API"; then
@@ -244,6 +254,7 @@ if [ "$EMULATORS_RUNNING" = true ]; then
     echo "  - Firestore: localhost:8080"
     echo "  - Auth: localhost:9099"
     echo "  - pgAdapter: localhost:5432"
+    echo "  - Bigtable: localhost:8086"
     echo "  - Qdrant: http://localhost:6333"
     echo "  - Neo4j: http://localhost:7474"
     echo "  - Elasticsearch: http://localhost:9200"
@@ -261,6 +272,7 @@ elif [ -z "$FIRESTORE_EMULATOR_HOST" ] && [ -z "$FIREBASE_AUTH_EMULATOR_HOST" ] 
     echo "  export FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199"
     echo "  export PUBSUB_EMULATOR_HOST=localhost:9399"
     echo "  export SPANNER_EMULATOR_HOST=localhost:9010"
+    echo "  export BIGTABLE_EMULATOR_HOST=localhost:8086"
     echo "  export GOOGLE_APPLICATION_CREDENTIALS=\"\""
     echo ""
     echo "Or add them to your .env.local file."

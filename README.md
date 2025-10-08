@@ -54,6 +54,7 @@ ports via `.env.local`.
 
 | Service        | Container            | Ports (host → container)                 | Health | CLI |
 |----------------|----------------------|------------------------------------------|--------|-----|
+| Bigtable       | `bigtable-emulator`  | 8086 → 8086 (gRPC)                       | TCP    | –   |
 | Firebase UI    | `firebase-emulator`  | 4000 → 4000                              | HTTP   | –   |
 | Firestore      | `firebase-emulator`  | 8080 → 8080                              | TCP    | –   |
 | Auth           | `firebase-emulator`  | 9099 → 9099                              | TCP    | –   |
@@ -134,6 +135,7 @@ export PUBSUB_EMULATOR_HOST=localhost:9399
 
 # Spanner Emulator host
 export SPANNER_EMULATOR_HOST=localhost:9010
+export BIGTABLE_EMULATOR_HOST=localhost:8086
 
 # Authentication (empty for emulators)
 export GOOGLE_APPLICATION_CREDENTIALS=""
@@ -153,11 +155,13 @@ export FIRESTORE_EMULATOR_HOST=firebase:8080
 export FIREBASE_STORAGE_EMULATOR_HOST=firebase:9199
 export PUBSUB_EMULATOR_HOST=firebase:9399
 export SPANNER_EMULATOR_HOST=spanner:9010
+export BIGTABLE_EMULATOR_HOST=bigtable-emulator:8086
 ```
 
 ## Access
 
 - pgAdapter (PostgreSQL): host `localhost`, port `5432`, user `user`, db `test-instance`
+- Bigtable: gRPC `localhost:8086`
 - Neo4j: Bolt `localhost:7687`, HTTP `localhost:7474` (neo4j / password)
 - Elasticsearch: REST `localhost:9200`
 - Qdrant: REST `localhost:6333`
@@ -180,6 +184,7 @@ Docs
 - [Neo4j CLI](neo4j-cli/README.md)
 - [Elasticsearch CLI](elasticsearch-cli/README.md)
 - [Qdrant CLI](qdrant-cli/README.md)
+ - [Bigtable CLI](bigtable-cli/README.md)
 
 Run with Docker Compose profiles. Examples:
 
@@ -205,6 +210,12 @@ Qdrant CLI
 
 ```bash
 docker compose --profile cli run --rm qdrant-cli
+```
+
+Bigtable CLI
+
+```bash
+docker compose --profile cli run --rm bigtable-cli
 ```
 
 All CLIs support multi‑line input and print tabular results for readability.
