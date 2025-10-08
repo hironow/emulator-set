@@ -96,7 +96,7 @@ def test_pgadapter_concurrent_update_conflict_or_skip(
     )
 
     # Wait for A to finish, then inspect outcome
-    res = cont_a.wait()
+    cont_a.wait()
     logs = cont_a.logs().decode(errors="ignore").lower()
     # In optimistic concurrency, one of the commits should be aborted; we accept either
     if "error" in logs or "abort" in logs:

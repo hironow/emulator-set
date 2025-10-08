@@ -162,12 +162,16 @@ func main() {
 			}
 			// If instance exists, we treat as success
 			if _, err := ia.InstanceInfo(ctx, inst); err != nil {
-				// Attempt creation
-				conf := bigtable.InstanceInfo{DisplayName: inst}
-				clusters := map[string]bigtable.ClusterConfig{
-					cl: {Zone: zone, NumNodes: nodes},
+				// Attempt creation using the modern InstanceConf API
+				conf := &bigtable.InstanceConf{
+					InstanceId:   inst,
+					DisplayName:  inst,
+					ClusterId:    cl,
+					Zone:         zone,
+					NumNodes:     int32(nodes),
+					InstanceType: bigtable.DEVELOPMENT,
 				}
-				if err := ia.CreateInstance(ctx, inst, conf, clusters); err != nil {
+				if err := ia.CreateInstance(ctx, conf); err != nil {
 					fmt.Printf("❌ Error: %v\n\n", err)
 					_ = ia.Close()
 					continue
