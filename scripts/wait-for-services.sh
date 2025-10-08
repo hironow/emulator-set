@@ -60,10 +60,10 @@ wait_http "Elasticsearch" "http://localhost:9200/_cluster/health" "$DEFAULT_WAIT
 wait_http "Qdrant" "http://localhost:6333/healthz" "$DEFAULT_WAIT"
 wait_http "Neo4j HTTP" "http://localhost:7474" "$DEFAULT_WAIT"
 wait_http "A2A Inspector" "http://localhost:8081" "$A2A_WAIT"
+wait_http "MLflow" "http://localhost:5000/" "$DEFAULT_WAIT"
 
 wait_tcp "Spanner gRPC" localhost 9010 "$DEFAULT_WAIT"
 wait_tcp "pgAdapter" localhost 5432 "$DEFAULT_WAIT"
 wait_tcp "Bigtable Emulator" localhost 8086 "$DEFAULT_WAIT"
 
 echo "All targeted services reported ready."
-

@@ -1,5 +1,7 @@
 # Firebase emulator data (persisted state)
 firebase/data/
+# mlflow artifacts
+mlflow-data/
 
 # Docker volumes
 .docker/

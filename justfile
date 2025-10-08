@@ -18,7 +18,7 @@ update:
 clear yes='':
     @echo '⚠️  This will delete all emulator persistent data:'
     @echo '   - Docker volumes: neo4j_data, neo4j_logs, neo4j_import, neo4j_plugins, qdrant_data, elasticsearch_data'
-    @echo '   - Directory: ./firebase/data'
+    @echo '   - Directories: ./firebase/data, ./mlflow-data'
     @if [ "{{yes}}" != 'yes' ]; then \
         printf 'Proceed? (yes/no): ' ; read ans; if [ "$$ans" != 'yes' ]; then echo '🛑 Aborted.'; exit 1; fi; \
     else \
@@ -39,6 +39,13 @@ clear yes='':
     else \
         echo 'ℹ️  Creating ./firebase/data...'; \
         mkdir -p ./firebase/data; \
+    fi
+    @if [ -d ./mlflow-data ]; then \
+        echo '🧼 Clearing ./mlflow-data by recreating directory...'; \
+        rm -rf ./mlflow-data && mkdir -p ./mlflow-data; \
+    else \
+        echo 'ℹ️  Creating ./mlflow-data...'; \
+        mkdir -p ./mlflow-data; \
     fi
     @echo '✅ Cleared.'
 
