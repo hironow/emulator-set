@@ -21,22 +21,16 @@ Go-based CLIs and just tasks make day‑to‑day work fast and predictable.
 
 ## Quick Start
 
-Check status
-
-```bash
-./check-status.sh
-```
-
 Start emulators (recommended)
 
 ```bash
-./start-emulators.sh
+just start
 ```
 
 Stop emulators (recommended)
 
 ```bash
-./stop-emulators.sh
+just stop
 ```
 
 Or use Docker Compose directly
@@ -54,7 +48,7 @@ ports via `.env.local`.
 
 | Service        | Container            | Ports (host → container)                 | Health | CLI |
 |----------------|----------------------|------------------------------------------|--------|-----|
-| Bigtable       | `bigtable-emulator`  | 8086 → 8086 (gRPC)                       | TCP    | –   |
+| Bigtable       | `bigtable-emulator`  | 8086 → 8086 (gRPC)                       | TCP    | ✓   |
 | Firebase UI    | `firebase-emulator`  | 4000 → 4000                              | HTTP   | –   |
 | Firestore      | `firebase-emulator`  | 8080 → 8080                              | TCP    | –   |
 | Auth           | `firebase-emulator`  | 9099 → 9099                              | TCP    | –   |
@@ -70,7 +64,7 @@ ports via `.env.local`.
 | Qdrant         | `qdrant-emulator`    | 6333 → 6333 (REST), 6334 → 6334 (gRPC)   | HTTP   | ✓   |
 | A2A Inspector  | `a2a-inspector`      | 8081 → 8080                              | HTTP   | –   |
 
-> ℹ️ Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
+> Note: Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
 
 CLI availability (✓) means a matching Go-based REPL is included and runnable
 via Docker Compose profiles.
@@ -94,28 +88,29 @@ just test
 
 Coverage highlights
 
-- Firestore: Create/Get via REST（エミュレータ専用の寛容なルールで実行）
+- Firestore: Create/Get via REST (runs with emulator-specific permissive rules)
 - Auth: SignUp / SignInWithPassword
-- Storage: Upload/Download（バケット作成 API が未実装でも継続）
+- Storage: Upload/Download (continues even when the bucket-creation API is unimplemented)
 - Pub/Sub: Topic / Subscription / Publish / Pull / Ack via REST
-- Eventarc: ポートの疎通スモーク
-- Spanner / pgAdapter: コンテナ稼働と TCP ポート確認
-- Neo4j / Elasticsearch / Qdrant: ヘルス確認
+- Eventarc: Port connectivity smoke test
+- Spanner / pgAdapter: Container liveness and TCP port checks
+- Neo4j / Elasticsearch / Qdrant: Health verification
 
 Test groups
+
 - Smoke: CLI help/info/exit sanity checks
 - CRUD: End‑to‑end create/read flows per CLI (with cleanup)
 - Features: Aggregations, relationships, filtered vector search
 - Negative: pgAdapter/Spanner incompat tests (e.g., missing PK, sequence)
 
-About skipped tests（想定内）
+About skipped tests (expected)
 
-- Pub/Sub REST: 一部のエミュレータビルド/環境では、HTTP/2 要求や不安定な REST 応答により 500 等が返ることがあります。
-  - テストは aiohttp を使用し、REST 応答が不安定な場合は fail ではなく skip にします。
-  - 環境によってはエミュレータが HTTP/2 を要求することがあります。その場合は本テストは自動的に skip されます。
-- Cloud Tasks REST: 未実装なケースが多く、事前検出して skip する設計です。
+- Pub/Sub REST: Some emulator builds or environments may return 500s because of HTTP/2 requirements or unstable REST responses.
+  - Tests use aiohttp and skip instead of fail when responses are flaky.
+  - On environments where the emulator mandates HTTP/2, the test skips automatically.
+- Cloud Tasks REST: Frequently unimplemented; we detect that ahead of time and skip.
 
-Note: Firestore のセキュリティルールは、ローカルエミュレータ用に「全面許可」へ切り替えています（テスト簡略化のため）。本番での使用は禁止です。
+Note: Firestore security rules are switched to fully permissive mode for the local emulator to simplify tests. Never use this configuration in production.
 
 ## Configuration
 
@@ -169,13 +164,12 @@ export BIGTABLE_EMULATOR_HOST=bigtable-emulator:8086
 - Qdrant: REST `localhost:6333`
 - A2A Inspector: `http://localhost:8081`
 
-Note (A2A Inspector): Web UI 内で `localhost` を指定するとコンテナからの接続となるため、
-ホストへの接続には `host.docker.internal` を利用してください。
+Note (A2A Inspector): Entering `localhost` in the web UI resolves inside the container; use `host.docker.internal` to reach the host.
 
 ## Data & Persistence
 
 - Firebase data persists under `firebase/data/`.
-- `stop-emulators.sh` exports Firebase data before shutdown.
+- `just stop` exports Firebase data before shutdown.
 
 ## CLI Tools (details)
 
@@ -186,7 +180,7 @@ Docs
 - [Neo4j CLI](neo4j-cli/README.md)
 - [Elasticsearch CLI](elasticsearch-cli/README.md)
 - [Qdrant CLI](qdrant-cli/README.md)
- - [Bigtable CLI](bigtable-cli/README.md)
+- [Bigtable CLI](bigtable-cli/README.md)
 
 Run with Docker Compose profiles. Examples:
 
@@ -202,6 +196,12 @@ Neo4j CLI
 docker compose --profile cli run --rm neo4j-cli
 ```
 
+Bigtable CLI
+
+```bash
+docker compose --profile cli run --rm bigtable-cli
+```
+
 Elasticsearch CLI
 
 ```bash
@@ -214,15 +214,10 @@ Qdrant CLI
 docker compose --profile cli run --rm qdrant-cli
 ```
 
-Bigtable CLI
-
-```bash
-docker compose --profile cli run --rm bigtable-cli
-```
-
 All CLIs support multi‑line input and print tabular results for readability.
 
 Apple Silicon (arm64)
+
 - Bigtable emulator image is amd64-only; the compose service sets `platform: linux/amd64` to run via emulation.
 - Performance impact is usually small for local testing. If you prefer native arm64, consider running the emulator directly on host via `gcloud`.
 
