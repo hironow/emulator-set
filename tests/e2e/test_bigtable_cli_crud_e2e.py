@@ -9,13 +9,12 @@ Flow
 - delete table
 """
 
-import random
-import string
 import pytest
 
 
 def _rand(n: int = 6) -> str:
-    import random as _r, string as _s
+    import random as _r
+    import string as _s
 
     return "".join(_r.choices(_s.ascii_lowercase + _s.digits, k=n))
 

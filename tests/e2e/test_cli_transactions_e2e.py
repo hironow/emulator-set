@@ -7,7 +7,6 @@ Focus
 - Qdrant: upsert then delete to validate atomic cleanup
 """
 
-import textwrap
 import pytest
 
 

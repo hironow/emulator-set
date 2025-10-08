@@ -89,6 +89,12 @@ format path='tests/':
     @echo '✅ Code formatted.'
 
 
+lint path='tests/' opts='--fix':
+    @echo '🔍 Linting code with ruff...'
+    uv run ruff check '{{path}}' '{{opts}}'
+    @echo '✅ Linting finished.'
+
+
 # ---- WRKFLW helpers ----
 
 # Validate workflows with wrkflw (target optional)
