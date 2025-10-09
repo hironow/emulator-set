@@ -5,8 +5,6 @@
 - Helpers to build images and run CLI commands inside containers.
 """
 
-from __future__ import annotations
-
 import os
 import textwrap
 from typing import Callable

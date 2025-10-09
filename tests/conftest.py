@@ -9,8 +9,6 @@ Intentional separation:
 Shared, fast fixtures for unit/integration tests live here.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 import os
 import pytest

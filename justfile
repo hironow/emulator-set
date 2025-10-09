@@ -65,6 +65,8 @@ format path='tests/':
 lint path='tests/' opts='--fix':
     @echo '🔍 Linting code with ruff...'
     uv run ruff check '{{path}}' '{{opts}}'
+    @echo 'Semgrep linting...'
+    uv run semgrep --config .semgrep/
     @echo '✅ Linting finished.'
 
 
