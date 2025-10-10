@@ -205,6 +205,7 @@ log "active account: ${ACTIVE_ACCOUNT:-<none>}"
 # Build warnings/suggestions based on heuristics
 WARNINGS=()
 SUGGESTIONS=()
+NOTICES=()
 
 # User login problems
 if [[ -z "${ACTIVE_ACCOUNT}" ]]; then
@@ -282,12 +283,50 @@ if [[ -z "${CORE_PROJECT}" ]]; then
 fi
 
 # Informational notice if quota project differs from core project (not necessarily wrong)
-NOTICES=()
 if [[ -n "${ADC_QUOTA_PROJECT_ID}" && -n "${CORE_PROJECT}" && "${ADC_QUOTA_PROJECT_ID}" != "${CORE_PROJECT}" ]]; then
   NOTICES+=("ADC quota project (${ADC_QUOTA_PROJECT_ID}) differs from core/project (${CORE_PROJECT})")
 fi
 if [[ -n "${IMPERSONATE_SA}" ]]; then
   NOTICES+=("gcloud is configured to impersonate service account: ${IMPERSONATE_SA} (CLI may differ from library ADC)")
+fi
+
+# High-privilege role detection (best effort): Owner/IAM Admin/Billing Admin
+HIGH_PRIV_PATTERNS=(
+  'roles/owner'
+  'roles/resourcemanager.projectIamAdmin'
+  'roles/iam.securityAdmin'
+  'roles/iam.roleAdmin'
+  'roles/billing.admin'
+)
+PRIV_LINES_STR=""  # newline-separated entries: project<TAB>role
+PRIV_COUNT=0
+PRINCIPAL=""
+if [[ "${ADC_TYPE}" == "service_account" && -n "${ADC_CLIENT_EMAIL}" ]]; then
+  PRINCIPAL="serviceAccount:${ADC_CLIENT_EMAIL}"
+elif [[ -n "${CONFIG_ACCOUNT}" ]]; then
+  PRINCIPAL="user:${CONFIG_ACCOUNT}"
+elif [[ -n "${ACTIVE_ACCOUNT}" ]]; then
+  PRINCIPAL="user:${ACTIVE_ACCOUNT}"
+fi
+if [[ -n "${PRINCIPAL}" ]]; then
+  PROJECTS_TO_CHECK=()
+  if [[ -n "${CORE_PROJECT}" ]]; then PROJECTS_TO_CHECK+=("${CORE_PROJECT}"); fi
+  if [[ -n "${ADC_QUOTA_PROJECT_ID}" && "${ADC_QUOTA_PROJECT_ID}" != "${CORE_PROJECT}" ]]; then PROJECTS_TO_CHECK+=("${ADC_QUOTA_PROJECT_ID}"); fi
+  for proj in "${PROJECTS_TO_CHECK[@]:-}"; do
+    _roles_out=$(gcloud projects get-iam-policy "$proj" --flatten=bindings --filter="bindings.members=${PRINCIPAL}" --format="value(bindings.role)" 2>/dev/null || true)
+    while IFS= read -r r; do
+      [[ -z "$r" ]] && continue
+      for pat in "${HIGH_PRIV_PATTERNS[@]}"; do
+        if [[ "$r" == "$pat" ]]; then
+          key="$proj"$'\t'"$r"
+          if ! printf '%s\n' "$PRIV_LINES_STR" | grep -Fqx "$key"; then
+            PRIV_LINES_STR+="$key"$'\n'
+            PRIV_COUNT=$((PRIV_COUNT+1))
+          fi
+        fi
+      done
+    done <<< "$_roles_out"
+  done
 fi
 
 if [[ "$JSON" == true ]]; then
@@ -308,10 +347,12 @@ if [[ "$JSON" == true ]]; then
     WFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_warn.$$)
     SFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_sugg.$$)
     NFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_note.$$)
+    PFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_priv.$$)
     printf '%s\n' "${WARNINGS[@]:-}" >"$WFILE"
     printf '%s\n' "${SUGGESTIONS[@]:-}" >"$SFILE"
     printf '%s\n' "${NOTICES[@]:-}" >"$NFILE"
-    WFILE="$WFILE" SFILE="$SFILE" NFILE="$NFILE" "${PYBIN}" - <<'PY' 2>/dev/null || true
+    printf '%s' "${PRIV_LINES_STR}" >"$PFILE"
+    WFILE="$WFILE" SFILE="$SFILE" NFILE="$NFILE" PFILE="$PFILE" "${PYBIN}" - <<'PY' 2>/dev/null || true
 import json, os, sys
 def to_bool(s):
     return True if str(s).lower() == 'true' else False
@@ -321,6 +362,22 @@ def read_lines(path):
             return [ln.rstrip('\n') for ln in f if ln.rstrip('\n')]
     except Exception:
         return []
+def read_priv(path):
+    items = []
+    try:
+        with open(path, 'r') as f:
+            for ln in f:
+                ln = ln.rstrip('\n')
+                if not ln:
+                    continue
+                if '\t' in ln:
+                    proj, role = ln.split('\t', 1)
+                else:
+                    proj, role = '', ln
+                items.append({'project': proj, 'role': role})
+    except Exception:
+        pass
+    return items
 out = {
   'gcloudVersion': os.environ.get('GCLOUD_VERSION',''),
   'activeAccount': os.environ.get('ACTIVE_ACCOUNT',''),
@@ -343,11 +400,12 @@ out = {
   'impersonateServiceAccount': os.environ.get('IMPERSONATE_SA',''),
   'warnings': read_lines(os.environ.get('WFILE','')),
   'suggestions': read_lines(os.environ.get('SFILE','')),
-  'notices': read_lines(os.environ.get('NFILE',''))
+  'notices': read_lines(os.environ.get('NFILE','')),
+  'highPrivilege': read_priv(os.environ.get('PFILE',''))
 }
 print(json.dumps(out))
 PY
-    rm -f "$WFILE" "$SFILE" "$NFILE" 2>/dev/null || true
+    rm -f "$WFILE" "$SFILE" "$NFILE" "$PFILE" 2>/dev/null || true
   else
     printf '{"gcloudVersion":"%s","activeAccount":"%s","userLoginOk":%s,"adcOk":%s,"adcSource":"%s","adcPath":"%s","adcType":"%s","adcClientEmail":"%s","adcProjectId":"%s","adcQuotaProjectId":"%s","adcAudience":"%s"}\n' \
       "${GCLOUD_VERSION}" "${ACTIVE_ACCOUNT}" \
@@ -392,6 +450,15 @@ else
     if [[ -n "${ADC_IMPERSONATION_URL}" ]]; then echo "Impersonation URL: ${ADC_IMPERSONATION_URL}"; fi
     if [[ -n "${CORE_PROJECT}" ]]; then echo "Core Project: ${CORE_PROJECT}"; fi
     if [[ -n "${BILLING_QUOTA_PROJECT}" ]]; then echo "Billing Quota Project: ${BILLING_QUOTA_PROJECT}"; fi
+    if [[ ${PRIV_COUNT} -gt 0 ]]; then
+      echo "--- Privilege Check ---"
+      echo "Principal: ${PRINCIPAL}"
+      while IFS=$'\t' read -r proj role; do
+        [[ -z "${proj}${role}" ]] && continue
+        echo "High-privilege role: ${role} on project: ${proj}"
+      done <<< "${PRIV_LINES_STR}"
+      echo "CAUTION: High-privilege role(s) detected. Perform operations carefully."
+    fi
     if (( ${#NOTICES[@]:-0} > 0 )); then
       echo "--- Notices ---"
       for n in "${NOTICES[@]}"; do echo "- ${n}"; done
