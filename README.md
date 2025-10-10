@@ -21,6 +21,16 @@ Go-based CLIs and just tasks make day‑to‑day work fast and predictable.
 
 ## Quick Start
 
+Pre-flight (recommended)
+
+```bash
+# Validate gcloud user login + ADC and common misconfigurations
+just gcloud-auth-check
+# or: bash scripts/check-gcloud-auth.sh --details --strict --verbose
+```
+
+Note: The Firebase emulator does not need production credentials, but Google SDKs and tools may still read ADC. Running the pre‑flight helps catch expired tokens, missing files, or account mismatches before you start.
+
 Start emulators (recommended)
 
 ```bash
@@ -75,6 +85,7 @@ via Docker Compose profiles.
 Convenience tasks (install just from <https://just.systems>):
 
 - `just test` — Run pytest through `uv run`
+- `just gcloud-auth-check` — Pre-flight gcloud auth/ADC check (strict + details)
 - `just gh-validate` — Validate GitHub workflow files using `wrkflw`
 - `just gh-run` — Execute a workflow locally (Docker / Podman / Emulation)
 - `just gh-tui` — Open `wrkflw` TUI and manage workflows interactively
@@ -157,6 +168,12 @@ export BIGTABLE_EMULATOR_HOST=bigtable-emulator:8086
 
 # MLflow client (inside another container)
 export MLFLOW_TRACKING_URI=http://mlflow:5000
+
+Local host client (MLflow)
+
+```bash
+export MLFLOW_TRACKING_URI=http://localhost:5252
+```
 
 **macOS Port Conflicts**
 - On macOS, Control Center (AirPlay) commonly binds ports `5000` and `7000`.
@@ -277,5 +294,3 @@ Notes
 - `SERIAL` / `SEQUENCE` are generally unsupported.
 - Some PostgreSQL features may be limited compared to stock PostgreSQL.
 - Keep DDL simple (explicit PK, basic types) for best compatibility.
-# MLflow client (local host)
-export MLFLOW_TRACKING_URI=http://localhost:5252
