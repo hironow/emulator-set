@@ -55,6 +55,11 @@ stop:
     @bash scripts/stop-services.sh
 
 
+# Check gcloud auth (detailed + strict)
+gcloud-auth-check:
+    @bash scripts/check-gcloud-auth.sh --details --strict --verbose
+
+
 # Format ruff
 format path='tests/':
     @echo '🔧 Formatting code with ruff...'
