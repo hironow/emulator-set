@@ -5,7 +5,7 @@ set -euo pipefail
 # need to be re-run. Idempotent: performs checks only, no changes.
 #
 # Usage:
-#   bash scripts/check-gcloud-auth.sh [--json] [--verbose] [--details]
+#   bash scripts/check-gcloud-auth.sh [--json] [--verbose] [--details] [--strict]
 #
 # Exit codes:
 #   0  = both user login and ADC are OK
@@ -18,11 +18,13 @@ set -euo pipefail
 JSON=false
 VERBOSE=false
 DETAILS=false
+STRICT=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --json) JSON=true; shift ;;
     --verbose|-v) VERBOSE=true; shift ;;
     --details) DETAILS=true; shift ;;
+    --strict|--fail-on-warn) STRICT=true; shift ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -40,6 +42,10 @@ if [[ -z "${GCLOUD_VERSION}" ]]; then
   GCLOUD_VERSION="unknown"
 fi
 ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || true)
+
+# Helpful config values
+CORE_PROJECT=$(gcloud config get-value project 2>/dev/null || true)
+BILLING_QUOTA_PROJECT=$(gcloud config get-value billing/quota_project 2>/dev/null || true)
 
 # Check user login by attempting to get an access token for the active account (if any).
 USER_LOGIN_OK=false
@@ -159,6 +165,56 @@ fi
 log "gcloud version: ${GCLOUD_VERSION}"
 log "active account: ${ACTIVE_ACCOUNT:-<none>}"
 
+# Build warnings/suggestions based on heuristics
+WARNINGS=()
+SUGGESTIONS=()
+
+# User login problems
+if [[ -z "${ACTIVE_ACCOUNT}" ]]; then
+  WARNINGS+=("No active gcloud account is set")
+  SUGGESTIONS+=("Run: gcloud auth login")
+elif [[ "${USER_LOGIN_OK}" != true ]]; then
+  WARNINGS+=("Active gcloud account token invalid/expired: ${ACTIVE_ACCOUNT}")
+  SUGGESTIONS+=("Run: gcloud auth login")
+fi
+
+# ADC problems
+if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" && ! -f "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  WARNINGS+=("GOOGLE_APPLICATION_CREDENTIALS points to a missing file: ${GOOGLE_APPLICATION_CREDENTIALS}")
+  SUGGESTIONS+=("Fix path or unset GOOGLE_APPLICATION_CREDENTIALS")
+fi
+
+if [[ "${ADC_OK}" != true ]]; then
+  WARNINGS+=("Application Default Credentials (ADC) not usable")
+  if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
+    SUGGESTIONS+=("Verify credentials file and permissions at ${GOOGLE_APPLICATION_CREDENTIALS}")
+  else
+    SUGGESTIONS+=("Run: gcloud auth application-default login")
+  fi
+fi
+
+# Authorized user ADC without quota project can cause 403 on some APIs
+if [[ "${ADC_TYPE}" == "authorized_user" && -z "${ADC_QUOTA_PROJECT_ID}" && -z "${BILLING_QUOTA_PROJECT}" ]]; then
+  WARNINGS+=("ADC type is authorized_user with no quota project configured")
+  if [[ -n "${CORE_PROJECT}" ]]; then
+    SUGGESTIONS+=("Run: gcloud auth application-default set-quota-project ${CORE_PROJECT}")
+  else
+    SUGGESTIONS+=("Set quota project: gcloud auth application-default set-quota-project <PROJECT>")
+  fi
+fi
+
+# Missing core project can be confusing for CLI operations
+if [[ -z "${CORE_PROJECT}" ]]; then
+  WARNINGS+=("gcloud core/project is not set")
+  SUGGESTIONS+=("Run: gcloud config set project <PROJECT>")
+fi
+
+# Informational notice if quota project differs from core project (not necessarily wrong)
+NOTICES=()
+if [[ -n "${ADC_QUOTA_PROJECT_ID}" && -n "${CORE_PROJECT}" && "${ADC_QUOTA_PROJECT_ID}" != "${CORE_PROJECT}" ]]; then
+  NOTICES+=("ADC quota project (${ADC_QUOTA_PROJECT_ID}) differs from core/project (${CORE_PROJECT})")
+fi
+
 if [[ "$JSON" == true ]]; then
   # Emit JSON object for machine consumption.
   if [[ "$_have_python" == true && -n "${PYBIN}" ]]; then
@@ -173,10 +229,23 @@ if [[ "$JSON" == true ]]; then
     ADC_PROJECT_ID="$ADC_PROJECT_ID" \
     ADC_QUOTA_PROJECT_ID="$ADC_QUOTA_PROJECT_ID" \
     ADC_AUDIENCE="$ADC_AUDIENCE" \
-    "${PYBIN}" - <<'PY' 2>/dev/null || true
-import json, os
+    # Pass warnings/suggestions/notices via temporary files to avoid env size issues
+    WFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_warn.$$)
+    SFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_sugg.$$)
+    NFILE=$(mktemp 2>/dev/null || echo /tmp/gcloud_note.$$)
+    printf '%s\n' "${WARNINGS[@]:-}" >"$WFILE"
+    printf '%s\n' "${SUGGESTIONS[@]:-}" >"$SFILE"
+    printf '%s\n' "${NOTICES[@]:-}" >"$NFILE"
+    WFILE="$WFILE" SFILE="$SFILE" NFILE="$NFILE" "${PYBIN}" - <<'PY' 2>/dev/null || true
+import json, os, sys
 def to_bool(s):
     return True if str(s).lower() == 'true' else False
+def read_lines(path):
+    try:
+        with open(path, 'r') as f:
+            return [ln.rstrip('\n') for ln in f if ln.rstrip('\n')]
+    except Exception:
+        return []
 out = {
   'gcloudVersion': os.environ.get('GCLOUD_VERSION',''),
   'activeAccount': os.environ.get('ACTIVE_ACCOUNT',''),
@@ -188,10 +257,16 @@ out = {
   'adcClientEmail': os.environ.get('ADC_CLIENT_EMAIL',''),
   'adcProjectId': os.environ.get('ADC_PROJECT_ID',''),
   'adcQuotaProjectId': os.environ.get('ADC_QUOTA_PROJECT_ID',''),
-  'adcAudience': os.environ.get('ADC_AUDIENCE','')
+  'adcAudience': os.environ.get('ADC_AUDIENCE',''),
+  'coreProject': os.environ.get('CORE_PROJECT',''),
+  'billingQuotaProject': os.environ.get('BILLING_QUOTA_PROJECT',''),
+  'warnings': read_lines(os.environ.get('WFILE','')),
+  'suggestions': read_lines(os.environ.get('SFILE','')),
+  'notices': read_lines(os.environ.get('NFILE',''))
 }
 print(json.dumps(out))
 PY
+    rm -f "$WFILE" "$SFILE" "$NFILE" 2>/dev/null || true
   else
     printf '{"gcloudVersion":"%s","activeAccount":"%s","userLoginOk":%s,"adcOk":%s,"adcSource":"%s","adcPath":"%s","adcType":"%s","adcClientEmail":"%s","adcProjectId":"%s","adcQuotaProjectId":"%s","adcAudience":"%s"}\n' \
       "${GCLOUD_VERSION}" "${ACTIVE_ACCOUNT}" \
@@ -234,16 +309,38 @@ else
     if [[ -n "${ADC_QUOTA_PROJECT_ID}" ]]; then echo "Quota Project: ${ADC_QUOTA_PROJECT_ID}"; fi
     if [[ -n "${ADC_AUDIENCE}" ]]; then echo "Audience: ${ADC_AUDIENCE}"; fi
     if [[ -n "${ADC_IMPERSONATION_URL}" ]]; then echo "Impersonation URL: ${ADC_IMPERSONATION_URL}"; fi
+    if [[ -n "${CORE_PROJECT}" ]]; then echo "Core Project: ${CORE_PROJECT}"; fi
+    if [[ -n "${BILLING_QUOTA_PROJECT}" ]]; then echo "Billing Quota Project: ${BILLING_QUOTA_PROJECT}"; fi
+    if (( ${#NOTICES[@]:-0} > 0 )); then
+      echo "--- Notices ---"
+      for n in "${NOTICES[@]}"; do echo "- ${n}"; done
+    fi
+    if (( ${#WARNINGS[@]:-0} > 0 )); then
+      echo "--- Warnings ---" >&2
+      for w in "${WARNINGS[@]}"; do echo "- ${w}" >&2; done
+    fi
+    if (( ${#SUGGESTIONS[@]:-0} > 0 )); then
+      echo "--- Suggestions ---"
+      for s in "${SUGGESTIONS[@]}"; do echo "- ${s}"; done
+    fi
   fi
 fi
 
 # Decide exit code matrix
+EXIT=0
 if [[ "$USER_LOGIN_OK" == true && "$ADC_OK" == true ]]; then
-  exit 0
+  EXIT=0
 elif [[ "$USER_LOGIN_OK" == false && "$ADC_OK" == true ]]; then
-  exit 10
+  EXIT=10
 elif [[ "$USER_LOGIN_OK" == true && "$ADC_OK" == false ]]; then
-  exit 11
+  EXIT=11
 else
-  exit 12
+  EXIT=12
 fi
+
+# If strict and there are warnings, prefer warning code 20 when base is 0
+if [[ "$STRICT" == true && $EXIT -eq 0 && ${#WARNINGS[@]:-0} -gt 0 ]]; then
+  EXIT=20
+fi
+
+exit $EXIT
