@@ -46,6 +46,8 @@ ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format='value(account
 # Helpful config values
 CORE_PROJECT=$(gcloud config get-value project 2>/dev/null || true)
 BILLING_QUOTA_PROJECT=$(gcloud config get-value billing/quota_project 2>/dev/null || true)
+CONFIG_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+IMPERSONATE_SA=$(gcloud config get-value auth/impersonate_service_account 2>/dev/null || true)
 
 # Check user login by attempting to get an access token for the active account (if any).
 USER_LOGIN_OK=false
@@ -93,11 +95,23 @@ ADC_PROJECT_ID=""
 ADC_QUOTA_PROJECT_ID=""
 ADC_AUDIENCE=""
 ADC_IMPERSONATION_URL=""
+ADC_PARSE_OK=false
+ADC_HAS_REFRESH_TOKEN=false
+ADC_HAS_PRIVATE_KEY=false
+ADC_FILE_MODE=""
 
 _have_python=false
 PYBIN=""
 if command -v python3 >/dev/null 2>&1; then _have_python=true; PYBIN="python3"; fi
 if [[ "$_have_python" == false ]] && command -v python >/dev/null 2>&1; then _have_python=true; PYBIN="python"; fi
+
+if [[ -n "${ADC_PATH}" && -f "${ADC_PATH}" ]]; then
+  # Capture file mode (best-effort across platforms)
+  if command -v stat >/dev/null 2>&1; then
+    # macOS: -f %A, Linux: -c %a; try both
+    ADC_FILE_MODE=$(stat -f %A "${ADC_PATH}" 2>/dev/null || stat -c %a "${ADC_PATH}" 2>/dev/null || echo "")
+  fi
+fi
 
 if [[ -n "${ADC_PATH}" && -f "${ADC_PATH}" && "$_have_python" == true ]]; then
   # shellcheck disable=SC2016
@@ -107,15 +121,20 @@ path = os.environ.get('ADC_PATH')
 try:
     with open(path, 'r') as f:
         d = json.load(f)
+    parse_ok = True
 except Exception:
     d = {}
+    parse_ok = False
 out = {
     'type': d.get('type',''),
     'client_email': d.get('client_email',''),
     'project_id': d.get('project_id','') or d.get('universe_project',''),
     'quota_project_id': d.get('quota_project_id',''),
     'audience': d.get('audience',''),
-    'impersonation_url': d.get('service_account_impersonation_url','')
+    'impersonation_url': d.get('service_account_impersonation_url',''),
+    'parse_ok': parse_ok,
+    'has_refresh_token': bool(d.get('refresh_token')),
+    'has_private_key': bool(d.get('private_key'))
 }
 print(json.dumps(out))
 PY
@@ -159,6 +178,24 @@ d = json.loads(os.environ.get('ADC_JSON','{}'))
 print(d.get('impersonation_url',''))
 PY
     )
+    ADC_PARSE_OK=$(ADC_JSON="$ADC_JSON" "${PYBIN}" - <<'PY' 2>/dev/null || true
+import json, os
+d = json.loads(os.environ.get('ADC_JSON','{}'))
+print('true' if d.get('parse_ok') else 'false')
+PY
+    )
+    ADC_HAS_REFRESH_TOKEN=$(ADC_JSON="$ADC_JSON" "${PYBIN}" - <<'PY' 2>/dev/null || true
+import json, os
+d = json.loads(os.environ.get('ADC_JSON','{}'))
+print('true' if d.get('has_refresh_token') else 'false')
+PY
+    )
+    ADC_HAS_PRIVATE_KEY=$(ADC_JSON="$ADC_JSON" "${PYBIN}" - <<'PY' 2>/dev/null || true
+import json, os
+d = json.loads(os.environ.get('ADC_JSON','{}'))
+print('true' if d.get('has_private_key') else 'false')
+PY
+    )
   fi
 fi
 
@@ -178,6 +215,12 @@ elif [[ "${USER_LOGIN_OK}" != true ]]; then
   SUGGESTIONS+=("Run: gcloud auth login")
 fi
 
+# Config account vs active account mismatch
+if [[ -n "${CONFIG_ACCOUNT}" && -n "${ACTIVE_ACCOUNT}" && "${CONFIG_ACCOUNT}" != "${ACTIVE_ACCOUNT}" ]]; then
+  WARNINGS+=("gcloud config account (${CONFIG_ACCOUNT}) differs from active account (${ACTIVE_ACCOUNT})")
+  SUGGESTIONS+=("Run: gcloud config set account ${ACTIVE_ACCOUNT}")
+fi
+
 # ADC problems
 if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" && ! -f "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   WARNINGS+=("GOOGLE_APPLICATION_CREDENTIALS points to a missing file: ${GOOGLE_APPLICATION_CREDENTIALS}")
@@ -191,6 +234,35 @@ if [[ "${ADC_OK}" != true ]]; then
   else
     SUGGESTIONS+=("Run: gcloud auth application-default login")
   fi
+fi
+
+# ADC file validations
+if [[ -n "${ADC_PATH}" && ! -r "${ADC_PATH}" ]]; then
+  WARNINGS+=("ADC file is not readable: ${ADC_PATH}")
+fi
+if [[ -n "${ADC_PATH}" && -f "${ADC_PATH}" && -n "${ADC_FILE_MODE}" ]]; then
+  # If world-readable or world-writable, surface as a notice for security hygiene
+  case "${ADC_FILE_MODE}" in
+    *7|*6|*5|*4)
+      NOTICES+=("ADC file permissions are broad (${ADC_FILE_MODE}); consider restricting to owner-only")
+      ;;
+  esac
+fi
+if [[ -n "${ADC_PATH}" && -f "${ADC_PATH}" && "${ADC_PARSE_OK}" != true ]]; then
+  WARNINGS+=("ADC file is not valid JSON or could not be parsed: ${ADC_PATH}")
+fi
+if [[ "${ADC_TYPE}" == "authorized_user" && "${ADC_HAS_REFRESH_TOKEN}" != true ]]; then
+  WARNINGS+=("Authorized user ADC missing refresh_token (re-auth likely required)")
+  SUGGESTIONS+=("Run: gcloud auth application-default login")
+fi
+if [[ "${ADC_TYPE}" == "service_account" && "${ADC_HAS_PRIVATE_KEY}" != true ]]; then
+  WARNINGS+=("Service account ADC missing private_key (invalid credentials file)")
+fi
+if [[ "${ADC_TYPE}" == "external_account" && -z "${ADC_AUDIENCE}" ]]; then
+  WARNINGS+=("External account ADC missing audience")
+fi
+if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" && "${ADC_TYPE}" == "authorized_user" ]]; then
+  NOTICES+=("GOOGLE_APPLICATION_CREDENTIALS points to authorized_user; typically service_account is preferred for automation")
 fi
 
 # Authorized user ADC without quota project can cause 403 on some APIs
@@ -213,6 +285,9 @@ fi
 NOTICES=()
 if [[ -n "${ADC_QUOTA_PROJECT_ID}" && -n "${CORE_PROJECT}" && "${ADC_QUOTA_PROJECT_ID}" != "${CORE_PROJECT}" ]]; then
   NOTICES+=("ADC quota project (${ADC_QUOTA_PROJECT_ID}) differs from core/project (${CORE_PROJECT})")
+fi
+if [[ -n "${IMPERSONATE_SA}" ]]; then
+  NOTICES+=("gcloud is configured to impersonate service account: ${IMPERSONATE_SA} (CLI may differ from library ADC)")
 fi
 
 if [[ "$JSON" == true ]]; then
@@ -258,8 +333,14 @@ out = {
   'adcProjectId': os.environ.get('ADC_PROJECT_ID',''),
   'adcQuotaProjectId': os.environ.get('ADC_QUOTA_PROJECT_ID',''),
   'adcAudience': os.environ.get('ADC_AUDIENCE',''),
+  'adcParseOk': to_bool(os.environ.get('ADC_PARSE_OK','false')),
+  'adcHasRefreshToken': to_bool(os.environ.get('ADC_HAS_REFRESH_TOKEN','false')),
+  'adcHasPrivateKey': to_bool(os.environ.get('ADC_HAS_PRIVATE_KEY','false')),
+  'adcFileMode': os.environ.get('ADC_FILE_MODE',''),
   'coreProject': os.environ.get('CORE_PROJECT',''),
   'billingQuotaProject': os.environ.get('BILLING_QUOTA_PROJECT',''),
+  'configAccount': os.environ.get('CONFIG_ACCOUNT',''),
+  'impersonateServiceAccount': os.environ.get('IMPERSONATE_SA',''),
   'warnings': read_lines(os.environ.get('WFILE','')),
   'suggestions': read_lines(os.environ.get('SFILE','')),
   'notices': read_lines(os.environ.get('NFILE',''))
