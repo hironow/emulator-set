@@ -29,7 +29,7 @@ test-e2e:
     @bash scripts/run-tests-e2e.sh
 
 # Pre-build selected images
-prebuild images='a2a-inspector firebase-emulator':
+prebuild images='a2a-inspector firebase-emulator postgres':
     @bash scripts/prebuild-images.sh {{images}}
 
 # Start services (detached)

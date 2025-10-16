@@ -195,7 +195,12 @@ func executeQuery(db *sql.DB, query string) {
 			for i, v := range vals {
 				if v == nil {
 					out[i] = "NULL"
-				} else {
+					continue
+				}
+				switch b := v.(type) {
+				case []byte:
+					out[i] = string(b)
+				default:
 					out[i] = fmt.Sprintf("%v", v)
 				}
 			}
