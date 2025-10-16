@@ -36,8 +36,8 @@ jobs:
       run: |
         uv sync --all-extras --frozen
 
-    - name: Pre-build selected images
-      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator
+    - name: Pre-build selected images (incl. Postgres 18)
+      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
 
     - name: Start Docker Compose services
       run: bash scripts/start-services.sh --no-build
