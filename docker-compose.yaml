@@ -256,7 +256,9 @@ services:
 
   # PostgreSQL 18 (pure Postgres)
   postgres:
-    image: postgres:18
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
     container_name: postgres-18
     ports:
       - "${POSTGRES_PORT:-5433}:5432"  # PostgreSQL port (avoid 5432 conflict with pgAdapter)
@@ -274,11 +276,13 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # PostgreSQL CLI (psql)
+  # PostgreSQL CLI (Go-based)
   postgres-cli:
     depends_on:
       - postgres
-    image: postgres:18
+    build:
+      context: ./postgres-cli
+      dockerfile: Dockerfile
     container_name: postgres-cli
     environment:
       - PGHOST=postgres
@@ -288,7 +292,7 @@ services:
       - PGDATABASE=postgres
     stdin_open: true
     tty: true
-    command: ["psql"]
+    command: ["./postgres-cli"]
     profiles:
       - cli  # Only run when explicitly requested
   # Elasticsearch

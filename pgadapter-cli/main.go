@@ -54,11 +54,25 @@ func main() {
 
 	// Test connection
 	ctx := context.Background()
-	if err := db.PingContext(ctx); err != nil {
-		fmt.Printf("❌ Failed to ping database: %v\n", err)
-		fmt.Println("💡 Make sure pgAdapter is running on localhost:5432")
-		os.Exit(1)
-	}
+    if err := db.PingContext(ctx); err != nil {
+        fmt.Printf("❌ Failed to ping database: %v\n", err)
+        // Show current target and a host-side hint
+        host := os.Getenv("PGHOST")
+        if host == "" {
+            host = "localhost"
+        }
+        port := os.Getenv("PGPORT")
+        if port == "" {
+            port = "5432"
+        }
+        alt := os.Getenv("PGADAPTER_PORT")
+        if alt == "" {
+            alt = "55432"
+        }
+        fmt.Printf("💡 Target: %s:%s\n", host, port)
+        fmt.Printf("💡 Host access hint: localhost:%s (override with PGADAPTER_PORT)\n", alt)
+        os.Exit(1)
+    }
 
 	fmt.Println("✅ Connected to Spanner Emulator via pgAdapter")
 	fmt.Println("\nType 'help' for commands, or enter SQL queries")
