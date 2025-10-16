@@ -250,12 +250,12 @@ func executeQuery(ctx context.Context, session neo4j.SessionWithContext, query s
 		// Get keys from the first record
 		if len(records[0].Keys) > 0 {
 			// Prepare table writer
-            table := tablewriter.NewWriter(os.Stdout)
-            if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
-                ts.SetHeader(records[0].Keys)
-            } else {
-                table.Append(records[0].Keys)
-            }
+			table := tablewriter.NewWriter(os.Stdout)
+			if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+				ts.SetHeader(records[0].Keys)
+			} else {
+				table.Append(records[0].Keys)
+			}
 			table.SetAutoWrapText(false)
 			table.SetAutoFormatHeaders(true)
 			table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)

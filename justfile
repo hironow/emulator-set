@@ -71,9 +71,22 @@ gcloud-auth-check:
 
 # Format ruff
 format path='tests/':
-    @echo '🔧 Formatting code with ruff...'
+    @echo '🔧 Formatting Python with ruff...'
     uv run ruff format '{{path}}'
-    @echo '✅ Code formatted.'
+    @echo '🪄 Formatting Go CLIs with go fmt (if available)...'
+    @if command -v go >/dev/null 2>&1; then \
+        set -e; \
+        for dir in pgadapter-cli neo4j-cli elasticsearch-cli qdrant-cli bigtable-cli postgres-cli; do \
+          if [ -f "$dir/go.mod" ]; then \
+            echo '  •' "$dir"; \
+            (cd "$dir" && go fmt ./...); \
+          fi; \
+        done; \
+        echo '✅ Go formatted.'; \
+      else \
+        echo '⚠️  go not found; skipping go fmt'; \
+      fi
+    @echo '✅ Formatting finished.'
 
 
 lint path='tests/' opts='--fix':
