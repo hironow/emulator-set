@@ -46,14 +46,13 @@ wait default='60' a2a='180':
 
 # One-shot: prebuild -> up -> wait
 start:
-    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator
+    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
     @bash scripts/start-services.sh
     @bash scripts/wait-for-services.sh --default 60 --a2a 180
 
 # Stop emulators (with Firebase export)
 stop:
     @bash scripts/stop-services.sh
-
 
 # Show emulator status (containers + endpoints)
 check:
@@ -63,13 +62,11 @@ check:
 pg-verify:
     @bash scripts/verify-postgres18.sh
 
-
 # Check gcloud auth (detailed + strict)
 gcloud-auth-check:
     @bash scripts/check-gcloud-auth.sh --details --strict --verbose
 
-
-# Format ruff
+# Format
 format path='tests/':
     @echo '🔧 Formatting Python with ruff...'
     uv run ruff format '{{path}}'
@@ -88,7 +85,7 @@ format path='tests/':
       fi
     @echo '✅ Formatting finished.'
 
-
+# Lint
 lint path='tests/' opts='--fix':
     @echo '🔍 Linting code with ruff...'
     uv run ruff check '{{path}}' '{{opts}}'
@@ -99,7 +96,7 @@ lint path='tests/' opts='--fix':
 
 # ---- WRKFLW helpers ----
 
-# Validate workflows with wrkflw (target optional)
+# Validate workflows with wrkflw
 gh-validate target='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
@@ -114,7 +111,7 @@ gh-validate target='':
         wrkflw validate; \
     fi
 
-# Run a workflow locally with wrkflw (docker/podman/emulation)
+# Run a workflow locally with wrkflw
 gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='true' preserve='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
@@ -133,7 +130,7 @@ gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='tr
     echo '▶️  Running:' "${cmd[@]}"; \
     "${cmd[@]}"
 
-# Open wrkflw TUI for workflows (file/dir target optional)
+# Open wrkflw TUI for workflows
 gh-tui target='.github/workflows' runtime='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
