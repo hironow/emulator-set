@@ -55,6 +55,11 @@ stop:
     @bash scripts/stop-services.sh
 
 
+# Show emulator status (containers + endpoints)
+check:
+    @bash scripts/check-status.sh
+
+
 # Check gcloud auth (detailed + strict)
 gcloud-auth-check:
     @bash scripts/check-gcloud-auth.sh --details --strict --verbose
