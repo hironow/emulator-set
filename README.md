@@ -253,7 +253,7 @@ Apple Silicon (arm64)
 Health checks
 
 ```bash
-./check-status.sh
+just check
 ```
 
 Tips
