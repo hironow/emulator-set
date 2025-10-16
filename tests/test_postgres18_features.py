@@ -1,5 +1,3 @@
-import asyncio
-import os
 import re
 
 import pytest
@@ -50,4 +48,3 @@ async def test_generated_column_virtual_or_stored_behaves() -> None:
         assert row["y"] == 10
     finally:
         await conn.close()
-

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 import asyncpg
 
@@ -32,8 +31,12 @@ async def ensure_generated_table(conn: asyncpg.Connection, table: str) -> str:
     Returns the attgenerated flag: 'v' (virtual) or 's' (stored).
     """
     await conn.execute(f"DROP TABLE IF EXISTS {table};")
-    ddl_virtual = f"CREATE TABLE {table} (x int, y int GENERATED ALWAYS AS (x*2) VIRTUAL);"
-    ddl_stored = f"CREATE TABLE {table} (x int, y int GENERATED ALWAYS AS (x*2) STORED);"
+    ddl_virtual = (
+        f"CREATE TABLE {table} (x int, y int GENERATED ALWAYS AS (x*2) VIRTUAL);"
+    )
+    ddl_stored = (
+        f"CREATE TABLE {table} (x int, y int GENERATED ALWAYS AS (x*2) STORED);"
+    )
     try:
         await conn.execute(ddl_virtual)
     except Exception:

@@ -13,8 +13,8 @@ def _should_skip_for_missing_extension(out: str, name: str) -> bool:
     name = name.lower()
     patterns = [
         "could not open extension control file",
-        "extension \"%s\" is not available" % name,
-        "type \"%s\" does not exist" % ("vector" if name == "vector" else name),
+        'extension "%s" is not available' % name,
+        'type "%s" does not exist' % ("vector" if name == "vector" else name),
         "no such file or directory",
     ]
     return any(p in s for p in patterns)
@@ -46,7 +46,9 @@ def test_postgres_cli_pgvector(
     SELECT id, round((emb <-> '[1,2,3]'::vector)::numeric, 3) AS d FROM e2e_vec ORDER BY d ASC LIMIT 1;
     exit
     """
-    out = run_shell("postgres-cli:local", f"cat <<'EOF' | ./postgres-cli\n{script}\nEOF", env)
+    out = run_shell(
+        "postgres-cli:local", f"cat <<'EOF' | ./postgres-cli\n{script}\nEOF", env
+    )
     if _should_skip_for_missing_extension(out, "vector"):
         pytest.skip("pgvector extension not available in the Postgres image")
 
@@ -58,9 +60,7 @@ def test_postgres_cli_pgvector(
 
 
 @pytest.mark.e2e
-def test_postgres_cli_postgis(
-    ensure_network, require_services, build_image, run_shell
-):
+def test_postgres_cli_postgis(ensure_network, require_services, build_image, run_shell):
     ensure_network()
     require_services(["postgres-18"])
     build_image(path="postgres-cli", tag="postgres-cli:local")
@@ -78,10 +78,11 @@ def test_postgres_cli_postgis(
     SELECT ST_AsText(ST_Buffer(ST_GeomFromText('POINT(0 0)'), 1.0, 'quad_segs=8')) AS wkt;
     exit
     """
-    out = run_shell("postgres-cli:local", f"cat <<'EOF' | ./postgres-cli\n{script}\nEOF", env)
+    out = run_shell(
+        "postgres-cli:local", f"cat <<'EOF' | ./postgres-cli\n{script}\nEOF", env
+    )
     if _should_skip_for_missing_extension(out, "postgis"):
         pytest.skip("postgis extension not available in the Postgres image")
 
     assert ("PostgreSQL 18 CLI" in out) or ("Connected to PostgreSQL 18" in out)
     assert "POLYGON" in out or "POINT" in out
-

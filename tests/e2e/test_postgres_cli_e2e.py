@@ -53,7 +53,9 @@ def test_postgres_cli_uuidv7_and_generated(
     SELECT x, y FROM e2e_cli_pg ORDER BY x LIMIT 1;
     exit
     """
-    out = run_shell("postgres-cli:local", f"cat <<'EOF' | ./postgres-cli\n{script}\nEOF", env)
+    out = run_shell(
+        "postgres-cli:local", f"cat <<'EOF' | ./postgres-cli\n{script}\nEOF", env
+    )
 
     assert ("Connected to PostgreSQL 18" in out) or ("PostgreSQL 18 CLI" in out)
     # uuidv7() output should render in the table; look for column alias or hyphenated UUID shape
@@ -61,4 +63,3 @@ def test_postgres_cli_uuidv7_and_generated(
     # generated column result 12 -> 24 should appear
     assert "12" in out and "24" in out
     assert ("Goodbye" in out) or ("Bye" in out)
-

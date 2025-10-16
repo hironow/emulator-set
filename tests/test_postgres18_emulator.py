@@ -35,8 +35,5 @@ def test_postgres18_container_starts() -> None:
             pass
 
         if i == max_retries - 1:
-            pytest.fail(
-                f"PostgreSQL endpoint is not accessible at localhost:{port}"
-            )
+            pytest.fail(f"PostgreSQL endpoint is not accessible at localhost:{port}")
         time.sleep(1)
-
