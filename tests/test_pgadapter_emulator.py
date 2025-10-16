@@ -1,3 +1,4 @@
+import os
 import pytest
 import docker
 import time
@@ -21,11 +22,12 @@ def test_pgadapter_container_starts():
 
     # Check if PostgreSQL port is accessible
     max_retries = 30
+    port = int(os.getenv("PGADAPTER_PORT", "55432"))
     for i in range(max_retries):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1)
         try:
-            result = sock.connect_ex(("localhost", 5432))
+            result = sock.connect_ex(("localhost", port))
             sock.close()
             if result == 0:
                 break
@@ -34,6 +36,6 @@ def test_pgadapter_container_starts():
 
         if i == max_retries - 1:
             pytest.fail(
-                "pgAdapter PostgreSQL endpoint is not accessible at localhost:5432"
+                f"pgAdapter PostgreSQL endpoint is not accessible at localhost:{port}"
             )
         time.sleep(1)

@@ -59,6 +59,10 @@ stop:
 check:
     @bash scripts/check-status.sh
 
+# Verify PostgreSQL 18 basics (version, uuidv7 availability)
+pg-verify:
+    @bash scripts/verify-postgres18.sh
+
 
 # Check gcloud auth (detailed + strict)
 gcloud-auth-check:

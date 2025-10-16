@@ -68,12 +68,13 @@ ports via `.env.local`.
 | Tasks          | `firebase-emulator`  | 9499 → 9499                              | HTTP   | –   |
 | Spanner gRPC   | `spanner-emulator`   | 9010 → 9010                              | TCP    | –   |
 | Spanner REST   | `spanner-emulator`   | 9020 → 9020                              | TCP    | –   |
-| pgAdapter      | `pgadapter-emulator` | 5432 → 5432 (PostgreSQL)                 | TCP    | ✓   |
+| pgAdapter      | `pgadapter-emulator` | 55432 → 5432 (PostgreSQL)                | TCP    | ✓   |
 | Neo4j          | `neo4j-emulator`     | 7474 → 7474 (HTTP), 7687 → 7687 (Bolt)   | HTTP   | ✓   |
 | Elasticsearch  | `elasticsearch-emulator` | 9200 → 9200 (REST), 9300 → 9300     | HTTP   | ✓   |
 | Qdrant         | `qdrant-emulator`    | 6333 → 6333 (REST), 6334 → 6334 (gRPC)   | HTTP   | ✓   |
 | A2A Inspector  | `a2a-inspector`      | 8081 → 8080                              | HTTP   | –   |
 | MLflow         | `mlflow-server`      | 5252 → 5000                              | HTTP   | –   |
+| PostgreSQL     | `postgres-18`        | 5433 → 5432 (PostgreSQL)                 | TCP    | ✓   |
 
 > Note: Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
 
@@ -145,6 +146,8 @@ export PUBSUB_EMULATOR_HOST=localhost:9399
 # Spanner Emulator host
 export SPANNER_EMULATOR_HOST=localhost:9010
 export BIGTABLE_EMULATOR_HOST=localhost:8086
+export POSTGRES_PORT=5433
+export PGADAPTER_PORT=55432
 
 # Authentication (empty for emulators)
 export GOOGLE_APPLICATION_CREDENTIALS=""
@@ -182,13 +185,14 @@ export MLFLOW_TRACKING_URI=http://localhost:5252
 
 ## Access
 
-- pgAdapter (PostgreSQL): host `localhost`, port `5432`, user `user`, db `test-instance`
+- pgAdapter (PostgreSQL): host `localhost`, port `55432`, user `user`, db `test-instance`
 - Bigtable: gRPC `localhost:8086`
 - Neo4j: Bolt `localhost:7687`, HTTP `localhost:7474` (neo4j / password)
 - Elasticsearch: REST `localhost:9200`
 - Qdrant: REST `localhost:6333`
 - A2A Inspector: `http://localhost:8081`
 - MLflow UI: `http://localhost:5252`
+- PostgreSQL: host `localhost`, port `5433`, user `postgres`, db `postgres`
 
 Note (A2A Inspector): Entering `localhost` in the web UI resolves inside the container; use `host.docker.internal` to reach the host.
 
@@ -208,6 +212,18 @@ Docs
 - [Elasticsearch CLI](elasticsearch-cli/README.md)
 - [Qdrant CLI](qdrant-cli/README.md)
 - [Bigtable CLI](bigtable-cli/README.md)
+
+PostgreSQL CLI
+
+```bash
+docker compose --profile cli run --rm postgres-cli
+```
+
+PostgreSQL 18 verification
+
+```bash
+just pg-verify
+```
 
 Run with Docker Compose profiles. Examples:
 
