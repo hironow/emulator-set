@@ -176,9 +176,9 @@ export MLFLOW_TRACKING_URI=http://localhost:5252
 ```
 
 **macOS Port Conflicts**
+
 - On macOS, Control Center (AirPlay) commonly binds ports `5000` and `7000`.
 - Avoid exposing emulator services on these host ports. This repo uses `5252` for MLflow by default.
-```
 
 ## Access
 
@@ -195,7 +195,7 @@ Note (A2A Inspector): Entering `localhost` in the web UI resolves inside the con
 ## Data & Persistence
 
 - Firebase data persists under `firebase/data/`.
- - Firebase emulator exports on exit automatically (export-on-exit). `just stop` simply stops containers.
+- Firebase emulator exports on exit automatically (export-on-exit). `just stop` simply stops containers.
 - MLflow experiment data (backend + artifacts) persists under `mlflow-data/`.
 
 ## CLI Tools (details)
