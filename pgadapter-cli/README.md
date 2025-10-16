@@ -43,7 +43,7 @@ docker run -it --rm --network emulator-network pgadapter-cli
 The CLI is configured through environment variables:
 
 - `PGADAPTER_HOST`: pgAdapter host (default: `pgadapter` for Docker, `localhost` for local)
-- `PGADAPTER_PORT`: pgAdapter port (default: `5432`)
+- `PGADAPTER_PORT`: pgAdapter host port (default: `55432` for host access; inside Compose the service listens on `5432`)
 - `PGADAPTER_DATABASE`: Database name (default: `test-instance`)
 - `PGADAPTER_USER`: Username (default: `user`)
 - `PGADAPTER_PASSWORD`: Password (default: empty)
@@ -150,7 +150,7 @@ If you cannot connect to pgAdapter:
 2. Check network connectivity:
 
    ```bash
-   nc -zv localhost 5432
+   nc -zv localhost ${PGADAPTER_PORT:-55432}
    ```
 
 3. Ensure environment variables are set correctly

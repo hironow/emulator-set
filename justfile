@@ -29,7 +29,7 @@ test-e2e:
     @bash scripts/run-tests-e2e.sh
 
 # Pre-build selected images
-prebuild images='a2a-inspector firebase-emulator':
+prebuild images='a2a-inspector firebase-emulator postgres':
     @bash scripts/prebuild-images.sh {{images}}
 
 # Start services (detached)
@@ -46,7 +46,7 @@ wait default='60' a2a='180':
 
 # One-shot: prebuild -> up -> wait
 start:
-    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator
+    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
     @bash scripts/start-services.sh
     @bash scripts/wait-for-services.sh --default 60 --a2a 180
 
@@ -54,24 +54,38 @@ start:
 stop:
     @bash scripts/stop-services.sh
 
-
 # Show emulator status (containers + endpoints)
 check:
     @bash scripts/check-status.sh
 
+# Verify PostgreSQL 18 basics (version, uuidv7 availability)
+pg-verify:
+    @bash scripts/verify-postgres18.sh
 
 # Check gcloud auth (detailed + strict)
 gcloud-auth-check:
     @bash scripts/check-gcloud-auth.sh --details --strict --verbose
 
-
-# Format ruff
+# Format
 format path='tests/':
-    @echo '🔧 Formatting code with ruff...'
+    @echo '🔧 Formatting Python with ruff...'
     uv run ruff format '{{path}}'
-    @echo '✅ Code formatted.'
+    @echo '🪄 Formatting Go CLIs with go fmt (if available)...'
+    @if command -v go >/dev/null 2>&1; then \
+        set -e; \
+        for dir in pgadapter-cli neo4j-cli elasticsearch-cli qdrant-cli bigtable-cli postgres-cli; do \
+          if [ -f "$dir/go.mod" ]; then \
+            echo '  •' "$dir"; \
+            (cd "$dir" && go fmt ./...); \
+          fi; \
+        done; \
+        echo '✅ Go formatted.'; \
+      else \
+        echo '⚠️  go not found; skipping go fmt'; \
+      fi
+    @echo '✅ Formatting finished.'
 
-
+# Lint
 lint path='tests/' opts='--fix':
     @echo '🔍 Linting code with ruff...'
     uv run ruff check '{{path}}' '{{opts}}'
@@ -82,7 +96,7 @@ lint path='tests/' opts='--fix':
 
 # ---- WRKFLW helpers ----
 
-# Validate workflows with wrkflw (target optional)
+# Validate workflows with wrkflw
 gh-validate target='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
@@ -97,7 +111,7 @@ gh-validate target='':
         wrkflw validate; \
     fi
 
-# Run a workflow locally with wrkflw (docker/podman/emulation)
+# Run a workflow locally with wrkflw
 gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='true' preserve='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
@@ -116,7 +130,7 @@ gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='tr
     echo '▶️  Running:' "${cmd[@]}"; \
     "${cmd[@]}"
 
-# Open wrkflw TUI for workflows (file/dir target optional)
+# Open wrkflw TUI for workflows
 gh-tui target='.github/workflows' runtime='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \

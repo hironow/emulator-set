@@ -110,7 +110,7 @@ report "Bigtable gRPC"     bigtable-emulator      tcp   "localhost:8086"
 
 # Spanner / pgAdapter
 report "Spanner gRPC"      spanner-emulator       tcp   "localhost:9010"
-report "pgAdapter"         pgadapter-emulator     tcp   "localhost:5432"
+report "pgAdapter"         pgadapter-emulator     tcp   "localhost:${PGADAPTER_PORT:-55432}"
 
 # Neo4j
 report "Neo4j HTTP"        neo4j-emulator         http  "http://localhost:7474"
@@ -127,6 +127,8 @@ report "A2A Inspector"     a2a-inspector          http  "http://localhost:8081"
 # MLflow
 report "MLflow"            mlflow-server          http  "http://localhost:5252/"
 
+# PostgreSQL (pure)
+report "PostgreSQL 18"     postgres-18            tcp   "localhost:${POSTGRES_PORT:-5433}"
+
 echo
 echo "Done."
-

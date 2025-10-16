@@ -56,7 +56,21 @@ func main() {
 	ctx := context.Background()
 	if err := db.PingContext(ctx); err != nil {
 		fmt.Printf("❌ Failed to ping database: %v\n", err)
-		fmt.Println("💡 Make sure pgAdapter is running on localhost:5432")
+		// Show current target and a host-side hint
+		host := os.Getenv("PGHOST")
+		if host == "" {
+			host = "localhost"
+		}
+		port := os.Getenv("PGPORT")
+		if port == "" {
+			port = "5432"
+		}
+		alt := os.Getenv("PGADAPTER_PORT")
+		if alt == "" {
+			alt = "55432"
+		}
+		fmt.Printf("💡 Target: %s:%s\n", host, port)
+		fmt.Printf("💡 Host access hint: localhost:%s (override with PGADAPTER_PORT)\n", alt)
 		os.Exit(1)
 	}
 
@@ -217,18 +231,35 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 			return
 		}
 
-		// Prepare table writer
+		// Prepare table writer (defensive to support multiple tablewriter versions)
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader(columns)
-		table.SetAutoWrapText(false)
-		table.SetAutoFormatHeaders(true)
-		table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
-		table.SetCenterSeparator("│")
-		table.SetColumnSeparator("│")
-		table.SetRowSeparator("─")
-		table.SetHeaderLine(true)
-		table.SetBorder(true)
+		if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+			ts.SetHeader(columns)
+		} else {
+			table.Append(columns)
+		}
+		// Optional styling if methods exist in the linked tablewriter version
+		if x, ok := any(table).(interface{ SetAutoWrapText(bool) }); ok {
+			x.SetAutoWrapText(false)
+		}
+		if x, ok := any(table).(interface{ SetAutoFormatHeaders(bool) }); ok {
+			x.SetAutoFormatHeaders(true)
+		}
+		if x, ok := any(table).(interface{ SetCenterSeparator(string) }); ok {
+			x.SetCenterSeparator("|")
+		}
+		if x, ok := any(table).(interface{ SetColumnSeparator(string) }); ok {
+			x.SetColumnSeparator("|")
+		}
+		if x, ok := any(table).(interface{ SetRowSeparator(string) }); ok {
+			x.SetRowSeparator("-")
+		}
+		if x, ok := any(table).(interface{ SetHeaderLine(bool) }); ok {
+			x.SetHeaderLine(true)
+		}
+		if x, ok := any(table).(interface{ SetBorder(bool) }); ok {
+			x.SetBorder(true)
+		}
 
 		// Scan rows
 		rowCount := 0

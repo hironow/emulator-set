@@ -63,7 +63,8 @@ wait_http "A2A Inspector" "http://localhost:8081" "$A2A_WAIT"
 wait_http "MLflow" "http://localhost:5252/" "$DEFAULT_WAIT"
 
 wait_tcp "Spanner gRPC" localhost 9010 "$DEFAULT_WAIT"
-wait_tcp "pgAdapter" localhost 5432 "$DEFAULT_WAIT"
+wait_tcp "pgAdapter" localhost "${PGADAPTER_PORT:-55432}" "$DEFAULT_WAIT"
 wait_tcp "Bigtable Emulator" localhost 8086 "$DEFAULT_WAIT"
+wait_tcp "PostgreSQL 18" localhost "${POSTGRES_PORT:-5433}" "$DEFAULT_WAIT"
 
 echo "All targeted services reported ready."

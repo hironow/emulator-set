@@ -108,7 +108,7 @@ services:
       - "-c \"\""
       - "-x"
     ports:
-      - "${PGADAPTER_PORT:-5432}:5432"  # PostgreSQL port
+      - "${PGADAPTER_PORT:-55432}:5432"  # PostgreSQL port (avoid host 5432)
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
       interval: 30s
@@ -254,6 +254,47 @@ services:
     profiles:
       - cli  # Only run when explicitly requested
 
+  # PostgreSQL 18 (pure Postgres)
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    container_name: postgres-18
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"  # PostgreSQL port (avoid 5432 conflict with pgAdapter)
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # PostgreSQL CLI (Go-based)
+  postgres-cli:
+    depends_on:
+      - postgres
+    build:
+      context: ./postgres-cli
+      dockerfile: Dockerfile
+    container_name: postgres-cli
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=postgres
+      - PGPASSWORD=password
+      - PGDATABASE=postgres
+    stdin_open: true
+    tty: true
+    command: ["./postgres-cli"]
+    profiles:
+      - cli  # Only run when explicitly requested
   # Elasticsearch
   elasticsearch:
     image: elasticsearch:8.19.3
@@ -299,6 +340,7 @@ volumes:
   neo4j_plugins:
   qdrant_data:
   elasticsearch_data:
+  postgres_data:
 
 networks:
   default:

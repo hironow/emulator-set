@@ -76,6 +76,16 @@ func printHelp() {
 	fmt.Println("  BIGTABLE_INSTANCE (default: test-instance)")
 }
 
+// setHeader sets a header row if the tablewriter version supports it.
+// Falls back to appending the header as the first row when unavailable.
+func setHeader(t *tablewriter.Table, headers []string) {
+	if ts, ok := any(t).(interface{ SetHeader([]string) }); ok {
+		ts.SetHeader(headers)
+		return
+	}
+	t.Append(headers)
+}
+
 func main() {
 	fmt.Println("🚀 Bigtable CLI (Emulator)")
 	fmt.Println("======================================")
@@ -187,7 +197,7 @@ func main() {
 				continue
 			}
 			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"Tables"})
+			setHeader(table, []string{"Tables"})
 			for _, n := range names {
 				table.Append([]string{n})
 			}
@@ -265,7 +275,7 @@ func main() {
 				continue
 			}
 			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"Family", "Column", "Timestamp(us)", "Value"})
+			setHeader(table, []string{"Family", "Column", "Timestamp(us)", "Value"})
 			for famName, items := range rr {
 				for _, item := range items {
 					if fam != "" && famName != fam {
@@ -297,7 +307,7 @@ func main() {
 			t := cli.data.Open(tbl)
 			count := 0
 			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"RowKey", "Family", "Column", "Value"})
+			setHeader(table, []string{"RowKey", "Family", "Column", "Value"})
 			err := t.ReadRows(ctx, bigtable.InfiniteRange(""), func(rr bigtable.Row) bool {
 				var rowKey string
 				for fam, items := range rr {

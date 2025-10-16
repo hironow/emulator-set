@@ -151,7 +151,11 @@ func listIndices() {
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Health", "Status", "Index", "Docs Count", "Store Size", "Pri Shards"})
+	if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+		ts.SetHeader([]string{"Health", "Status", "Index", "Docs Count", "Store Size", "Pri Shards"})
+	} else {
+		table.Append([]string{"Health", "Status", "Index", "Docs Count", "Store Size", "Pri Shards"})
+	}
 
 	result.ForEach(func(key, value gjson.Result) bool {
 		health := value.Get("health").String()
