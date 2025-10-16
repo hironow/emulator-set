@@ -147,8 +147,12 @@ func listCollections() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Name", "Vectors Count", "Points Count", "Config"})
+    table := tablewriter.NewWriter(os.Stdout)
+    if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+        ts.SetHeader([]string{"Name", "Vectors Count", "Points Count", "Config"})
+    } else {
+        table.Append([]string{"Name", "Vectors Count", "Points Count", "Config"})
+    }
 
 	result.ForEach(func(key, value gjson.Result) bool {
 		name := value.Get("name").String()

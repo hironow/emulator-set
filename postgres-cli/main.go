@@ -138,8 +138,12 @@ func showTables(db *sql.DB) {
 	}
 	defer rows.Close()
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"schema", "table"})
+    table := tablewriter.NewWriter(os.Stdout)
+    if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+        ts.SetHeader([]string{"schema", "table"})
+    } else {
+        table.Append([]string{"schema", "table"})
+    }
 	for rows.Next() {
 		var s, t string
 		_ = rows.Scan(&s, &t)
@@ -169,8 +173,12 @@ func executeQuery(db *sql.DB, query string) {
 			fmt.Printf("❌ %v\n", err)
 			return
 		}
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader(cols)
+        table := tablewriter.NewWriter(os.Stdout)
+        if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+            ts.SetHeader(cols)
+        } else {
+            table.Append(cols)
+        }
 
 		vals := make([]interface{}, len(cols))
 		ptrs := make([]interface{}, len(cols))

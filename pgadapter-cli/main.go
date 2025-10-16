@@ -232,8 +232,12 @@ func executeQuery(ctx context.Context, db *sql.DB, query string) {
 		}
 
 		// Prepare table writer
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader(columns)
+        table := tablewriter.NewWriter(os.Stdout)
+        if ts, ok := any(table).(interface{ SetHeader([]string) }); ok {
+            ts.SetHeader(columns)
+        } else {
+            table.Append(columns)
+        }
 		table.SetAutoWrapText(false)
 		table.SetAutoFormatHeaders(true)
 		table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
