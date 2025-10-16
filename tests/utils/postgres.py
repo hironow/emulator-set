@@ -42,7 +42,7 @@ async def ensure_generated_table(conn: asyncpg.Connection, table: str) -> str:
     # Determine generated kind
     row = await conn.fetchrow(
         """
-        SELECT a.attgenerated
+        SELECT a.attgenerated::text AS attgenerated
         FROM pg_class c
         JOIN pg_namespace n ON n.oid = c.relnamespace
         JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'y'
@@ -50,6 +50,12 @@ async def ensure_generated_table(conn: asyncpg.Connection, table: str) -> str:
         """,
         table,
     )
-    kind: Optional[str] = row["attgenerated"] if row else None
-    return kind or ""
-
+    raw = row["attgenerated"] if row else None
+    if raw is None:
+        return ""
+    if isinstance(raw, (bytes, bytearray)):
+        try:
+            return raw.decode()
+        except Exception:
+            return str(raw)
+    return str(raw)
