@@ -11,7 +11,7 @@ WORKDIR /src
 RUN git clone --depth 1 --branch "${A2A_INSPECTOR_REF}" "${A2A_INSPECTOR_REPO}" repo
 
 # Stage 1: build frontend assets
-FROM node:18-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 
 COPY --from=source /src/repo/frontend/package*.json ./
