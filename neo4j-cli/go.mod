@@ -3,7 +3,7 @@ module neo4j-cli
 go 1.21
 
 require (
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.3
+	github.com/neo4j/neo4j-go-driver/v5 v5.28.4
 	github.com/olekukonko/tablewriter v1.1.0
 )
 
