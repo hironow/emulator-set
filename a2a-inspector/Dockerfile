@@ -23,7 +23,7 @@ RUN npm rebuild esbuild
 RUN npm run build
 
 # Stage 2: assemble runtime image
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /app
 
 ENV UV_PYTHON_PREFER_SYSTEM=1
