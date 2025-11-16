@@ -36,6 +36,9 @@ jobs:
       run: |
         uv sync --all-extras --frozen
 
+    - name: Clean up any existing Docker volumes
+      run: docker compose down -v || true
+
     - name: Pre-build selected images (incl. Postgres 18)
       run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
 
@@ -43,7 +46,7 @@ jobs:
       run: bash scripts/start-services.sh --no-build
  
     - name: Wait for services to be ready
-      run: bash scripts/wait-for-services.sh --default 60 --a2a 180
+      run: bash scripts/wait-for-services.sh --default 90 --a2a 180 --postgres 150
     
     - name: Run unit/integration tests (non-e2e)
       run: bash scripts/run-tests-fast.sh

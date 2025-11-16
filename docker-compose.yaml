@@ -255,6 +255,8 @@ services:
       - cli  # Only run when explicitly requested
 
   # PostgreSQL 18 (pure Postgres)
+  # Note: PG 18+ uses major-version-specific directories (e.g., /var/lib/postgresql/18/data)
+  # Mount at /var/lib/postgresql (not /data subdir) for pg_upgrade compatibility.
   postgres:
     build:
       context: ./postgres
@@ -266,8 +268,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=postgres
+      # PGDATA is automatically set to /var/lib/postgresql/18/data by the image
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 30s

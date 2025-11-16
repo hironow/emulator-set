@@ -97,6 +97,7 @@ lint path='tests/' opts='--fix':
 # ---- WRKFLW helpers ----
 
 # Validate workflows with wrkflw
+[group("wrkflw")]
 gh-validate target='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
@@ -112,6 +113,7 @@ gh-validate target='':
     fi
 
 # Run a workflow locally with wrkflw
+[group("wrkflw")]
 gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='true' preserve='':
     @if ! command -v wrkflw >/dev/null 2>&1; then \
         echo '❌ wrkflw not found.'; \
@@ -130,20 +132,8 @@ gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='tr
     echo '▶️  Running:' "${cmd[@]}"; \
     "${cmd[@]}"
 
-# Open wrkflw TUI for workflows
-gh-tui target='.github/workflows' runtime='':
-    @if ! command -v wrkflw >/dev/null 2>&1; then \
-        echo '❌ wrkflw not found.'; \
-        echo '   Install with: cargo install wrkflw'; \
-        exit 127; \
-    fi
-    @set -e; \
-    cmd=(wrkflw tui "{{target}}"); \
-    if [ -n "{{runtime}}" ]; then cmd+=(--runtime "{{runtime}}"); fi; \
-    echo '🖥️  TUI:' "${cmd[@]}"; \
-    "${cmd[@]}"
-
 # Check wrkflw availability and show version
+[group("wrkflw")]
 gh-check:
     @if command -v wrkflw >/dev/null 2>&1; then \
         echo '✅ wrkflw installed:'; wrkflw --version || wrkflw -V || true; \
