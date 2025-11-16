@@ -255,6 +255,8 @@ services:
       - cli  # Only run when explicitly requested
 
   # PostgreSQL 18 (pure Postgres)
+  # Note: PG 18+ recommends mounting /var/lib/postgresql (not /data subdir) for pg_upgrade compatibility.
+  # CI environments should use `docker compose down -v` before startup to ensure clean state.
   postgres:
     build:
       context: ./postgres

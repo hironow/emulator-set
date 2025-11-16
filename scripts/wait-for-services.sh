@@ -68,35 +68,53 @@ wait_postgres() {
   local max="${1:-$DEFAULT_WAIT}"
   echo "- Waiting for ${name} at ${host}:${port}"
 
-  # First check if container exists and is running
-  if ! docker ps --format '{{.Names}}' | grep -q '^postgres-18$'; then
-    echo "  ERROR: postgres-18 container not found or not running" >&2
-    docker ps --all --filter "name=postgres-18" >&2
-    return 1
-  fi
-
+  local restart_count=0
   for _ in $(seq 1 "$max"); do
-    # First check TCP connectivity
-    if ! (echo > "/dev/tcp/${host}/${port}") >/dev/null 2>&1; then
-      sleep 2
-      continue
-    fi
+    # Check container status
+    local container_status
+    container_status=$(docker inspect -f '{{.State.Status}}' postgres-18 2>/dev/null || echo "not-found")
 
-    # If TCP is ready, verify PostgreSQL is accepting connections
-    if docker exec postgres-18 pg_isready -U postgres >/dev/null 2>&1; then
-      echo "  ${name} is ready"
-      return 0
-    fi
+    case "$container_status" in
+      "running")
+        # Container is running, check if PostgreSQL is ready
+        if docker exec postgres-18 pg_isready -U postgres >/dev/null 2>&1; then
+          echo "  ${name} is ready"
+          return 0
+        fi
+        restart_count=0
+        ;;
+      "restarting")
+        restart_count=$((restart_count + 1))
+        if [[ $restart_count -ge 5 ]]; then
+          echo "  ERROR: ${name} is in restart loop" >&2
+          echo "  Container logs (last 30 lines):" >&2
+          docker logs postgres-18 --tail 30 2>&1 >&2 || true
+          return 1
+        fi
+        ;;
+      "exited"|"dead")
+        echo "  ERROR: ${name} container has stopped (status: ${container_status})" >&2
+        echo "  Container logs (last 30 lines):" >&2
+        docker logs postgres-18 --tail 30 2>&1 >&2 || true
+        return 1
+        ;;
+      "not-found")
+        echo "  ERROR: postgres-18 container not found" >&2
+        docker ps --all --filter "name=postgres-18" >&2
+        return 1
+        ;;
+    esac
 
     sleep 2
   done
 
-  # Debug: show last error
+  # Debug: show final state
   echo "  ERROR: ${name} not ready in time" >&2
+  echo "  Container status: $(docker inspect -f '{{.State.Status}}' postgres-18 2>/dev/null || echo 'unknown')" >&2
   echo "  Last pg_isready output:" >&2
   docker exec postgres-18 pg_isready -U postgres 2>&1 >&2 || true
-  echo "  Container logs (last 10 lines):" >&2
-  docker logs postgres-18 --tail 10 2>&1 >&2 || true
+  echo "  Container logs (last 30 lines):" >&2
+  docker logs postgres-18 --tail 30 2>&1 >&2 || true
   return 1
 }
 
