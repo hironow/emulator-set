@@ -25,7 +25,7 @@ wait_http() {
   local url="$1"; shift
   local max="${1:-$DEFAULT_WAIT}"
   echo "- Waiting for ${name} at ${url}"
-  for i in $(seq 1 "$max"); do
+  for _ in $(seq 1 "$max"); do
     local code
     code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
     if [[ "$code" =~ ^2|3 ]]; then
@@ -44,8 +44,25 @@ wait_tcp() {
   local port="$1"; shift
   local max="${1:-$DEFAULT_WAIT}"
   echo "- Waiting for ${name} at ${host}:${port}"
-  for i in $(seq 1 "$max"); do
-    if (echo > /dev/tcp/${host}/${port}) >/dev/null 2>&1; then
+  for _ in $(seq 1 "$max"); do
+    if (echo > "/dev/tcp/${host}/${port}") >/dev/null 2>&1; then
+      echo "  ${name} is ready"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "  ERROR: ${name} not ready in time" >&2
+  return 1
+}
+
+wait_postgres() {
+  local name="$1"; shift
+  local host="$1"; shift
+  local port="$1"; shift
+  local max="${1:-$DEFAULT_WAIT}"
+  echo "- Waiting for ${name} at ${host}:${port}"
+  for _ in $(seq 1 "$max"); do
+    if docker exec postgres-18 pg_isready -U postgres >/dev/null 2>&1; then
       echo "  ${name} is ready"
       return 0
     fi
@@ -65,6 +82,6 @@ wait_http "MLflow" "http://localhost:5252/" "$DEFAULT_WAIT"
 wait_tcp "Spanner gRPC" localhost 9010 "$DEFAULT_WAIT"
 wait_tcp "pgAdapter" localhost "${PGADAPTER_PORT:-55432}" "$DEFAULT_WAIT"
 wait_tcp "Bigtable Emulator" localhost 8086 "$DEFAULT_WAIT"
-wait_tcp "PostgreSQL 18" localhost "${POSTGRES_PORT:-5433}" "$DEFAULT_WAIT"
+wait_postgres "PostgreSQL 18" localhost "${POSTGRES_PORT:-5433}" "$DEFAULT_WAIT"
 
 echo "All targeted services reported ready."
