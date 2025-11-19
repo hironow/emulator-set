@@ -1,37 +1,26 @@
 import pytest
 import docker
-import time
-import socket
 
 
 def test_bigtable_container_starts():
     """Test that the Bigtable emulator container starts and is healthy."""
     client = docker.from_env()
 
+    from tests.utils.helpers import get_container, wait_for_tcp
+    from tests.utils.result import Error, Ok
+
     # Check if bigtable container exists and is running
-    try:
-        container = client.containers.get("bigtable-emulator")
-        assert container.status == "running", (
-            f"Bigtable container is not running, status: {container.status}"
-        )
-    except docker.errors.NotFound:
-        pytest.fail(
-            "Bigtable container 'bigtable-emulator' not found. Run 'docker compose up bigtable-emulator' first."
-        )
+    match get_container(client, "bigtable-emulator"):
+        case Ok(container):
+            assert container.status == "running", (
+                f"Bigtable container is not running, status: {container.status}"
+            )
+        case Error(msg):
+            pytest.fail(msg)
 
     # Check if Bigtable gRPC endpoint is accessible
-    max_retries = 30
-    for i in range(max_retries):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)
-        try:
-            result = sock.connect_ex(("localhost", 8086))
-            sock.close()
-            if result == 0:
-                break
-        except Exception:
+    match wait_for_tcp("localhost", 8086):
+        case Ok(_):
             pass
-
-        if i == max_retries - 1:
-            pytest.fail("Bigtable gRPC endpoint is not accessible at localhost:8086")
-        time.sleep(1)
+        case Error(msg):
+            pytest.fail(msg)

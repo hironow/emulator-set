@@ -1,6 +1,5 @@
 import pytest
 import docker
-import asyncio
 
 
 @pytest.mark.asyncio
@@ -8,32 +7,24 @@ async def test_elasticsearch_container_starts(http_client):
     """Test that the Elasticsearch container starts and is healthy."""
     client = docker.from_env()
 
+    from tests.utils.helpers import get_container, wait_for_http
+    from tests.utils.result import Error, Ok
+
     # Check if elasticsearch container exists and is running
-    try:
-        container = client.containers.get("elasticsearch-emulator")
-        assert container.status == "running", (
-            f"Elasticsearch container is not running, status: {container.status}"
-        )
-    except docker.errors.NotFound:
-        pytest.fail(
-            "Elasticsearch container 'elasticsearch-emulator' not found. Run 'docker compose up elasticsearch' first."
-        )
+    match get_container(client, "elasticsearch-emulator"):
+        case Ok(container):
+            assert container.status == "running", (
+                f"Elasticsearch container is not running, status: {container.status}"
+            )
+        case Error(msg):
+            pytest.fail(msg)
 
     # Check if Elasticsearch REST API is accessible
-    max_retries = 30
-    for i in range(max_retries):
-        try:
-            async with http_client.get(
-                "http://localhost:9200/_cluster/health"
-            ) as response:
-                if response.status == 200:
-                    break
-        except Exception:
-            if i == max_retries - 1:
-                pytest.fail(
-                    "Elasticsearch REST API is not accessible at localhost:9200"
-                )
-            await asyncio.sleep(1)
+    match await wait_for_http(http_client, "http://localhost:9200/_cluster/health"):
+        case Ok(_):
+            pass
+        case Error(msg):
+            pytest.fail(msg)
 
     # Verify Elasticsearch is ready
     async with http_client.get("http://localhost:9200/_cluster/health") as response:
