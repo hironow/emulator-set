@@ -14,6 +14,7 @@ dependencies = [
     "uvicorn>=0.30.0",
     "mlflow>=3.4.0",
     "dspy>=3.0.3",
+    "marimo[recommended]>=0.17.8",
 ]
 
 [dependency-groups]
