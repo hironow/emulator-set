@@ -236,6 +236,14 @@ func executeCommand(command string) {
 		return
 	}
 
+	// Wait for index shards to be ready after PUT (index creation)
+	if method == "PUT" && strings.HasPrefix(path, "/") && !strings.Contains(path, "/_") {
+		indexName := strings.Split(strings.TrimPrefix(path, "/"), "/")[0]
+		if indexName != "" {
+			waitForIndexReady(indexName)
+		}
+	}
+
 	// Pretty print JSON response
 	var prettyJSON bytes.Buffer
 	if err := json.Indent(&prettyJSON, []byte(resp), "", "  "); err != nil {
@@ -245,6 +253,16 @@ func executeCommand(command string) {
 	}
 
 	fmt.Printf("\nTime: %v\n", time.Since(start))
+}
+
+func waitForIndexReady(indexName string) {
+	// Wait for index shards to be ready (yellow or green status)
+	healthPath := fmt.Sprintf("/_cluster/health/%s?wait_for_status=yellow&timeout=30s", indexName)
+	_, err := makeRequest("GET", healthPath, nil)
+	if err != nil {
+		// Log warning but don't fail - the index might still become available
+		fmt.Printf("Warning: Index health check failed: %v\n", err)
+	}
 }
 
 func makeRequest(method, path string, body []byte) (string, error) {
