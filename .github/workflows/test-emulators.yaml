@@ -52,7 +52,9 @@ jobs:
       run: bash scripts/run-tests-fast.sh
 
     - name: Run e2e tests
-      run: bash scripts/run-tests-e2e.sh | tee e2e.log
+      run: |
+        set -o pipefail
+        bash scripts/run-tests-e2e.sh | tee e2e.log
 
     - name: Summarize skipped e2e tests
       if: always()

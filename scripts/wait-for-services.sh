@@ -119,7 +119,28 @@ wait_postgres() {
 }
 
 wait_http "Firebase UI" "http://localhost:4000" "$DEFAULT_WAIT"
-wait_http "Elasticsearch" "http://localhost:9200/_cluster/health" "$DEFAULT_WAIT"
+wait_elasticsearch() {
+  local name="$1"; shift
+  local url="$1"; shift
+  local max="${1:-$DEFAULT_WAIT}"
+  echo "- Waiting for ${name} at ${url}"
+  for _ in $(seq 1 "$max"); do
+    local response
+    response=$(curl -s "$url" || true)
+    if [[ "$response" == *"\"status\":\"green\""* ]] || [[ "$response" == *"\"status\":\"yellow\""* ]]; then
+      echo "  ${name} is ready (status: green/yellow)"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "  ERROR: ${name} not ready in time" >&2
+  echo "  Last response: $response" >&2
+  return 1
+}
+
+wait_http "Firebase UI" "http://localhost:4000" "$DEFAULT_WAIT"
+wait_elasticsearch "Elasticsearch" "http://localhost:9200/_cluster/health" "$DEFAULT_WAIT"
+
 wait_http "Qdrant" "http://localhost:6333/healthz" "$DEFAULT_WAIT"
 wait_http "Neo4j HTTP" "http://localhost:7474" "$DEFAULT_WAIT"
 wait_http "A2A Inspector" "http://localhost:8081" "$A2A_WAIT"
