@@ -126,9 +126,17 @@ wait_elasticsearch() {
   for _ in $(seq 1 "$max"); do
     local response
     response=$(curl -s "$url" || true)
+
+    # Check cluster status is green or yellow
     if [[ "$response" == *"\"status\":\"green\""* ]] || [[ "$response" == *"\"status\":\"yellow\""* ]]; then
-      echo "  ${name} is ready (status: green/yellow)"
-      return 0
+      # Additionally verify no shards are initializing (prevents 503 errors in tests)
+      if [[ "$response" == *"\"initializing_shards\":0"* ]]; then
+        echo "  ${name} is ready (status: green/yellow, shards initialized)"
+        return 0
+      else
+        # Status is good but shards still initializing, keep waiting
+        echo "  ${name} status OK, waiting for shard initialization..."
+      fi
     fi
     sleep 1
   done
