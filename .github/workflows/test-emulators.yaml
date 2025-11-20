@@ -54,7 +54,11 @@ jobs:
  
     - name: Wait for services to be ready
       run: bash scripts/wait-for-services.sh --default 90 --a2a 180 --postgres 150
-    
+
+    - name: Test Elasticsearch separately
+      timeout-minutes: 2
+      run: bash scripts/test-elasticsearch.sh
+
     - name: Run unit/integration tests (non-e2e)
       timeout-minutes: 5
       run: bash scripts/run-tests-fast.sh

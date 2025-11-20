@@ -300,7 +300,7 @@ services:
       - cli  # Only run when explicitly requested
   # Elasticsearch
   elasticsearch:
-    image: elasticsearch:8.19.5
+    image: elasticsearch:9.2.1
     container_name: elasticsearch-emulator
     ports:
       - "${ELASTICSEARCH_PORT:-9200}:9200"  # REST API
