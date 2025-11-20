@@ -37,7 +37,14 @@ jobs:
         uv sync --all-extras --frozen
 
     - name: Clean up any existing Docker volumes
-      run: docker compose down -v || true
+      run: |
+        # Only clean up if services are already running
+        if docker compose ps -q 2>/dev/null | grep -q .; then
+          echo "Cleaning up existing services and volumes..."
+          docker compose down -v
+        else
+          echo "No existing services to clean up."
+        fi
 
     - name: Pre-build selected images (incl. Postgres 18)
       run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
@@ -54,9 +61,7 @@ jobs:
 
     - name: Run e2e tests
       timeout-minutes: 8
-      run: |
-        set -o pipefail
-        bash scripts/run-tests-e2e.sh | tee e2e.log
+      run: bash scripts/run-tests-e2e.sh | tee e2e.log
 
     - name: Summarize skipped e2e tests
       if: always()
