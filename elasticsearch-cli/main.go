@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	host   string
-	port   string
-	client *http.Client
+	host    string
+	port    string
+	client  *http.Client
+	verbose bool
 )
 
 func init() {
@@ -31,6 +32,9 @@ func init() {
 	if port == "" {
 		port = "9200"
 	}
+
+	// Enable verbose logging for debugging (especially in CI)
+	verbose = os.Getenv("ES_CLI_VERBOSE") == "1" || os.Getenv("ES_CLI_VERBOSE") == "true"
 
 	client = &http.Client{
 		Timeout: 60 * time.Second,
@@ -259,10 +263,21 @@ func waitForIndexReady(indexName string) {
 	// Wait for index shards to be ready (yellow or green status)
 	// Use a longer timeout for CI environments and poll for readiness
 	maxRetries := 60 // 60 seconds total
+
+	if verbose {
+		fmt.Printf("[VERBOSE] Waiting for index '%s' to be ready (max %ds)...\n", indexName, maxRetries)
+	}
+
 	for i := 0; i < maxRetries; i++ {
 		healthPath := fmt.Sprintf("/_cluster/health/%s", indexName)
+		start := time.Now()
 		resp, err := makeRequest("GET", healthPath, nil)
+		elapsed := time.Since(start)
+
 		if err != nil {
+			if verbose {
+				fmt.Printf("[VERBOSE] Retry %d/%d: Health check failed after %v: %v\n", i+1, maxRetries, elapsed, err)
+			}
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -270,8 +285,17 @@ func waitForIndexReady(indexName string) {
 		result := gjson.Parse(resp)
 		status := result.Get("status").String()
 		initializingShards := result.Get("initializing_shards").Int()
+		activeShards := result.Get("active_shards").Int()
+
+		if verbose {
+			fmt.Printf("[VERBOSE] Retry %d/%d: status=%s, initializing_shards=%d, active_shards=%d (took %v)\n",
+				i+1, maxRetries, status, initializingShards, activeShards, elapsed)
+		}
 
 		if (status == "green" || status == "yellow") && initializingShards == 0 {
+			if verbose {
+				fmt.Printf("[VERBOSE] Index '%s' ready after %d attempts (%.2fs total)\n", indexName, i+1, float64(i+1))
+			}
 			return // Index is ready
 		}
 
@@ -284,13 +308,16 @@ func waitForIndexReady(indexName string) {
 
 func makeRequest(method, path string, body []byte) (string, error) {
 	url := fmt.Sprintf("http://%s:%s%s", host, port, path)
+	start := time.Now()
 
 	var req *http.Request
 	var err error
 
 	if body != nil {
 		req, err = http.NewRequest(method, url, bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
+		if err == nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
 	} else {
 		req, err = http.NewRequest(method, url, nil)
 	}
@@ -299,15 +326,39 @@ func makeRequest(method, path string, body []byte) (string, error) {
 		return "", err
 	}
 
+	if verbose {
+		bodyPreview := ""
+		if body != nil && len(body) > 0 {
+			if len(body) > 100 {
+				bodyPreview = fmt.Sprintf(" (body: %d bytes)", len(body))
+			} else {
+				bodyPreview = fmt.Sprintf(" (body: %s)", string(body))
+			}
+		}
+		fmt.Printf("[VERBOSE] Request: %s %s%s\n", method, path, bodyPreview)
+	}
+
 	resp, err := client.Do(req)
+	elapsed := time.Since(start)
+
 	if err != nil {
+		if verbose {
+			fmt.Printf("[VERBOSE] Request failed after %v: %v\n", elapsed, err)
+		}
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		if verbose {
+			fmt.Printf("[VERBOSE] Failed to read response body after %v: %v\n", elapsed, err)
+		}
 		return "", err
+	}
+
+	if verbose {
+		fmt.Printf("[VERBOSE] Response: HTTP %d (took %v, %d bytes)\n", resp.StatusCode, elapsed, len(respBody))
 	}
 
 	if resp.StatusCode >= 400 {

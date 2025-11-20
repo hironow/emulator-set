@@ -5,7 +5,8 @@
       "Bash(docker compose stop:*)",
       "Bash(docker compose rm:*)",
       "Bash(docker volume:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(uv run pytest:*)"
     ],
     "deny": [],
     "ask": []
