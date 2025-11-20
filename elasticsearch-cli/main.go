@@ -257,12 +257,29 @@ func executeCommand(command string) {
 
 func waitForIndexReady(indexName string) {
 	// Wait for index shards to be ready (yellow or green status)
-	healthPath := fmt.Sprintf("/_cluster/health/%s?wait_for_status=yellow&timeout=30s", indexName)
-	_, err := makeRequest("GET", healthPath, nil)
-	if err != nil {
-		// Log warning but don't fail - the index might still become available
-		fmt.Printf("Warning: Index health check failed: %v\n", err)
+	// Use a longer timeout for CI environments and poll for readiness
+	maxRetries := 60 // 60 seconds total
+	for i := 0; i < maxRetries; i++ {
+		healthPath := fmt.Sprintf("/_cluster/health/%s", indexName)
+		resp, err := makeRequest("GET", healthPath, nil)
+		if err != nil {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		result := gjson.Parse(resp)
+		status := result.Get("status").String()
+		initializingShards := result.Get("initializing_shards").Int()
+
+		if (status == "green" || status == "yellow") && initializingShards == 0 {
+			return // Index is ready
+		}
+
+		time.Sleep(1 * time.Second)
 	}
+
+	// Log warning but don't fail - the index might still become available
+	fmt.Printf("Warning: Index %s not ready after %d seconds\n", indexName, maxRetries)
 }
 
 func makeRequest(method, path string, body []byte) (string, error) {
