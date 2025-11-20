@@ -4,18 +4,18 @@ set -euo pipefail
 # Idempotent waiter for emulator services.
 # Usage: bash scripts/wait-for-services.sh [--default <sec>] [--a2a <sec>] [--postgres <sec>]
 
-DEFAULT_WAIT=60
-A2A_WAIT=180
+DEFAULT_WAIT=30
+A2A_WAIT=60
 POSTGRES_WAIT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --default)
-      DEFAULT_WAIT="${2:-60}"; shift 2 ;;
+      DEFAULT_WAIT="${2:-30}"; shift 2 ;;
     --a2a)
-      A2A_WAIT="${2:-180}"; shift 2 ;;
+      A2A_WAIT="${2:-60}"; shift 2 ;;
     --postgres)
-      POSTGRES_WAIT="${2:-120}"; shift 2 ;;
+      POSTGRES_WAIT="${2:-60}"; shift 2 ;;
     *)
       echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -38,7 +38,7 @@ wait_http() {
       echo "  ${name} is ready (HTTP ${code})"
       return 0
     fi
-    sleep 2
+    sleep 1
   done
   echo "  ERROR: ${name} not ready in time" >&2
   return 1
@@ -55,7 +55,7 @@ wait_tcp() {
       echo "  ${name} is ready"
       return 0
     fi
-    sleep 2
+    sleep 1
   done
   echo "  ERROR: ${name} not ready in time" >&2
   return 1
@@ -105,7 +105,7 @@ wait_postgres() {
         ;;
     esac
 
-    sleep 2
+    sleep 1
   done
 
   # Debug: show final state
@@ -118,8 +118,36 @@ wait_postgres() {
   return 1
 }
 
+wait_elasticsearch() {
+  local name="$1"; shift
+  local url="$1"; shift
+  local max="${1:-$DEFAULT_WAIT}"
+  echo "- Waiting for ${name} at ${url}"
+  for _ in $(seq 1 "$max"); do
+    local response
+    response=$(curl -s "$url" || true)
+
+    # Check cluster status is green or yellow
+    if [[ "$response" == *"\"status\":\"green\""* ]] || [[ "$response" == *"\"status\":\"yellow\""* ]]; then
+      # Additionally verify no shards are initializing (prevents 503 errors in tests)
+      if [[ "$response" == *"\"initializing_shards\":0"* ]]; then
+        echo "  ${name} is ready (status: green/yellow, shards initialized)"
+        return 0
+      else
+        # Status is good but shards still initializing, keep waiting
+        echo "  ${name} status OK, waiting for shard initialization..."
+      fi
+    fi
+    sleep 1
+  done
+  echo "  ERROR: ${name} not ready in time" >&2
+  echo "  Last response: $response" >&2
+  return 1
+}
+
 wait_http "Firebase UI" "http://localhost:4000" "$DEFAULT_WAIT"
-wait_http "Elasticsearch" "http://localhost:9200/_cluster/health" "$DEFAULT_WAIT"
+wait_elasticsearch "Elasticsearch" "http://localhost:9200/_cluster/health" "$DEFAULT_WAIT"
+
 wait_http "Qdrant" "http://localhost:6333/healthz" "$DEFAULT_WAIT"
 wait_http "Neo4j HTTP" "http://localhost:7474" "$DEFAULT_WAIT"
 wait_http "A2A Inspector" "http://localhost:8081" "$A2A_WAIT"

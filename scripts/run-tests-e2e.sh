@@ -9,6 +9,8 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "Running E2E tests"
+# E2E tests run sequentially due to Docker client state management
+# Parallel execution (-n auto) causes Docker API 404 errors
 uv run pytest tests/e2e -v -m e2e -ra
 echo "Done."
 

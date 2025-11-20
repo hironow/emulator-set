@@ -105,18 +105,47 @@ def run_cli(
     def _run(image: str, binary: str, script: str, env: dict[str, str]) -> str:
         script = textwrap.dedent(script).lstrip("\n")
         heredoc = f"cat <<'EOF' | ./{binary}\n{script}\nEOF"
+        container = None
         try:
-            out: bytes = docker_client.containers.run(
+            # Run container in detached mode to enable timeout handling
+            container = docker_client.containers.run(
                 image=image,
                 command=["sh", "-lc", heredoc],
                 environment=env,
                 network=e2e_network_name,
-                remove=True,
+                detach=True,
                 stdout=True,
                 stderr=True,
             )
-            return out.decode(errors="ignore")
+
+            # Wait for container to finish with 5-minute timeout
+            exit_code = container.wait(timeout=300)
+
+            # Get logs after completion
+            logs = container.logs(stdout=True, stderr=True)
+
+            # Clean up container
+            container.remove()
+
+            # Check exit code
+            if isinstance(exit_code, dict):
+                status_code = exit_code.get("StatusCode", 0)
+            else:
+                status_code = exit_code
+
+            if status_code != 0:
+                pytest.fail(
+                    f"Container exited with code {status_code}. Output:\n{logs.decode(errors='ignore')}"
+                )
+
+            return logs.decode(errors="ignore")
         except Exception as e:  # pragma: no cover - env dependent
+            # Clean up container on error
+            if container:
+                try:
+                    container.remove(force=True)
+                except Exception:
+                    pass
             pytest.skip(f"run {image} failed: {e}")
 
     return _run
@@ -132,18 +161,47 @@ def run_shell(
     """
 
     def _run(image: str, command: str, env: dict[str, str]) -> str:
+        container = None
         try:
-            out: bytes = docker_client.containers.run(
+            # Run container in detached mode to enable timeout handling
+            container = docker_client.containers.run(
                 image=image,
                 command=["sh", "-lc", command],
                 environment=env,
                 network=e2e_network_name,
-                remove=True,
+                detach=True,
                 stdout=True,
                 stderr=True,
             )
-            return out.decode(errors="ignore")
+
+            # Wait for container to finish with 5-minute timeout
+            exit_code = container.wait(timeout=300)
+
+            # Get logs after completion
+            logs = container.logs(stdout=True, stderr=True)
+
+            # Clean up container
+            container.remove()
+
+            # Check exit code
+            if isinstance(exit_code, dict):
+                status_code = exit_code.get("StatusCode", 0)
+            else:
+                status_code = exit_code
+
+            if status_code != 0:
+                pytest.fail(
+                    f"Container exited with code {status_code}. Output:\n{logs.decode(errors='ignore')}"
+                )
+
+            return logs.decode(errors="ignore")
         except Exception as e:  # pragma: no cover - env dependent
+            # Clean up container on error
+            if container:
+                try:
+                    container.remove(force=True)
+                except Exception:
+                    pass
             pytest.skip(f"run {image} failed: {e}")
 
     return _run
