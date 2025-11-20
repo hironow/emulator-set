@@ -23,6 +23,7 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=0.25.0",
     "pytest-timeout>=2.3.1",
+    "pytest-xdist>=3.6.1",
     "ruff>=0.12.4",
 ]
 
@@ -31,6 +32,6 @@ markers = [
     "e2e: end-to-end tests that require Docker and running emulators",
 ]
 # Default timeout for all tests (can be overridden per test)
-timeout = 300
+timeout = 180
 # Timeout method: 'thread' is more compatible with async tests
 timeout_method = "thread"

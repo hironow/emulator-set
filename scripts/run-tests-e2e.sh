@@ -9,6 +9,8 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "Running E2E tests"
-uv run pytest tests/e2e -v -m e2e -ra
+# Use pytest-xdist for parallel execution to speed up tests
+# -n auto: automatically detect number of CPU cores
+uv run pytest tests/e2e -v -m e2e -ra -n auto
 echo "Done."
 
