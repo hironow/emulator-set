@@ -118,7 +118,6 @@ wait_postgres() {
   return 1
 }
 
-wait_http "Firebase UI" "http://localhost:4000" "$DEFAULT_WAIT"
 wait_elasticsearch() {
   local name="$1"; shift
   local url="$1"; shift

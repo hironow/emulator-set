@@ -41,14 +41,22 @@ up nobuild='no':
     fi
 
 # Wait for services
-wait default='60' a2a='180':
-    @bash scripts/wait-for-services.sh --default {{default}} --a2a {{a2a}}
+wait default='60' a2a='180' postgres='120':
+    @bash scripts/wait-for-services.sh --default {{default}} --a2a {{a2a}} --postgres {{postgres}}
+
+# Clean up volumes (use with caution - deletes all data)
+clean-volumes:
+    @echo '⚠️  Cleaning up Docker volumes...'
+    docker compose down -v || true
+    @echo '✅ Volumes cleaned.'
 
 # One-shot: prebuild -> up -> wait
 start:
+    @echo '🧹 Cleaning up old volumes...'
+    @docker compose down -v || true
     @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
     @bash scripts/start-services.sh
-    @bash scripts/wait-for-services.sh --default 60 --a2a 180
+    @bash scripts/wait-for-services.sh --default 60 --a2a 180 --postgres 120
 
 # Stop emulators (with Firebase export)
 stop:
