@@ -49,9 +49,11 @@ jobs:
       run: bash scripts/wait-for-services.sh --default 90 --a2a 180 --postgres 150
     
     - name: Run unit/integration tests (non-e2e)
+      timeout-minutes: 5
       run: bash scripts/run-tests-fast.sh
 
     - name: Run e2e tests
+      timeout-minutes: 8
       run: |
         set -o pipefail
         bash scripts/run-tests-e2e.sh | tee e2e.log

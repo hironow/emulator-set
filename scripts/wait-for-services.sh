@@ -4,18 +4,18 @@ set -euo pipefail
 # Idempotent waiter for emulator services.
 # Usage: bash scripts/wait-for-services.sh [--default <sec>] [--a2a <sec>] [--postgres <sec>]
 
-DEFAULT_WAIT=60
-A2A_WAIT=180
+DEFAULT_WAIT=30
+A2A_WAIT=60
 POSTGRES_WAIT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --default)
-      DEFAULT_WAIT="${2:-60}"; shift 2 ;;
+      DEFAULT_WAIT="${2:-30}"; shift 2 ;;
     --a2a)
-      A2A_WAIT="${2:-180}"; shift 2 ;;
+      A2A_WAIT="${2:-60}"; shift 2 ;;
     --postgres)
-      POSTGRES_WAIT="${2:-120}"; shift 2 ;;
+      POSTGRES_WAIT="${2:-60}"; shift 2 ;;
     *)
       echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -38,7 +38,7 @@ wait_http() {
       echo "  ${name} is ready (HTTP ${code})"
       return 0
     fi
-    sleep 2
+    sleep 1
   done
   echo "  ERROR: ${name} not ready in time" >&2
   return 1
@@ -55,7 +55,7 @@ wait_tcp() {
       echo "  ${name} is ready"
       return 0
     fi
-    sleep 2
+    sleep 1
   done
   echo "  ERROR: ${name} not ready in time" >&2
   return 1
@@ -105,7 +105,7 @@ wait_postgres() {
         ;;
     esac
 
-    sleep 2
+    sleep 1
   done
 
   # Debug: show final state
@@ -130,7 +130,7 @@ wait_elasticsearch() {
       echo "  ${name} is ready (status: green/yellow)"
       return 0
     fi
-    sleep 2
+    sleep 1
   done
   echo "  ERROR: ${name} not ready in time" >&2
   echo "  Last response: $response" >&2
