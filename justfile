@@ -146,26 +146,6 @@ gh-validate target='':
         wrkflw validate; \
     fi
 
-# Run a workflow locally with wrkflw
-[group("wrkflw")]
-gh-run file='.github/workflows/test-emulators.yaml' runtime='docker' verbose='true' preserve='':
-    @if ! command -v wrkflw >/dev/null 2>&1; then \
-        echo '❌ wrkflw not found.'; \
-        echo '   Install with: cargo install wrkflw'; \
-        exit 127; \
-    fi
-    @if [ ! -f "{{file}}" ]; then \
-        echo '❌ Workflow not found:' '{{file}}'; \
-        exit 2; \
-    fi
-    @set -e; \
-    cmd=(wrkflw run "{{file}}"); \
-    if [ -n "{{runtime}}" ]; then cmd+=(--runtime "{{runtime}}"); fi; \
-    if [ "{{verbose}}" = 'true' ]; then cmd+=(--verbose); fi; \
-    if [ "{{preserve}}" = 'true' ]; then cmd+=(--preserve-containers-on-failure); fi; \
-    echo '▶️  Running:' "${cmd[@]}"; \
-    "${cmd[@]}"
-
 # Check wrkflw availability and show version
 [group("wrkflw")]
 gh-check:
