@@ -6,7 +6,9 @@
       "Bash(docker compose rm:*)",
       "Bash(docker volume:*)",
       "Bash(docker compose:*)",
-      "Bash(uv run pytest:*)"
+      "Bash(uv run pytest:*)",
+      "Bash(just lint-check:*)",
+      "Bash(bunx markdownlint-cli2:*)"
     ],
     "deny": [],
     "ask": []

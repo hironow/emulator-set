@@ -6,6 +6,8 @@ default: help
 help:
     @just --list --unsorted
 
+MARKDOWNLINT := "bunx markdownlint-cli2"
+
 
 # Update dependencies with uv
 update:
@@ -99,7 +101,19 @@ lint path='tests/' opts='--fix':
     uv run ruff check '{{path}}' '{{opts}}'
     @echo 'Semgrep linting...'
     uv run semgrep --config .semgrep/ --error
+    @echo 'markdown linting...'
+    {{MARKDOWNLINT}} --fix "**/*.md"
     @echo '✅ Linting finished.'
+
+# Lint check (no auto-fix, for CI)
+lint-check path='tests/':
+    @echo '🔍 Checking code with ruff...'
+    uv run ruff check '{{path}}'
+    @echo 'Semgrep checking...'
+    uv run semgrep --config .semgrep/ --error
+    @echo 'markdown checking...'
+    {{MARKDOWNLINT}} "**/*.md"
+    @echo '✅ Lint check finished.'
 
 
 # ---- WRKFLW helpers ----

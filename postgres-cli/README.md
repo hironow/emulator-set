@@ -24,4 +24,3 @@ For host access (outside Docker), the Postgres service is mapped to `localhost:$
 - `tables` or `\dt` — List user tables
 - `clear` or `\c` — Clear screen
 - `exit` or `\q` — Exit
-

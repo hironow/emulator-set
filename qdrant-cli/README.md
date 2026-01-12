@@ -43,7 +43,7 @@ All API commands follow the format: `METHOD /path [body];`
 
 Examples:
 
-```
+```bash
 # Create a collection
 PUT /collections/test_collection {"vectors": {"size": 4, "distance": "Cosine"}};
 
@@ -75,7 +75,7 @@ DELETE /collections/test_collection;
 
 For complex JSON bodies, you can use multi-line mode by not ending the line with a semicolon:
 
-```
+```text
 qdrant> PUT /collections/my_collection {
 ...   "vectors": {
 ...     "size": 768,

@@ -119,8 +119,8 @@ Test groups
 About skipped tests (expected)
 
 - Pub/Sub REST: Some emulator builds or environments may return 500s because of HTTP/2 requirements or unstable REST responses.
-  - Tests use aiohttp and skip instead of fail when responses are flaky.
-  - On environments where the emulator mandates HTTP/2, the test skips automatically.
+    - Tests use aiohttp and skip instead of fail when responses are flaky.
+    - On environments where the emulator mandates HTTP/2, the test skips automatically.
 - Cloud Tasks REST: Frequently unimplemented; we detect that ahead of time and skip.
 
 Note: Firestore security rules are switched to fully permissive mode for the local emulator to simplify tests. Never use this configuration in production.
