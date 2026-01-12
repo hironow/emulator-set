@@ -8,7 +8,8 @@
       "Bash(docker compose:*)",
       "Bash(uv run pytest:*)",
       "Bash(just lint-check:*)",
-      "Bash(bunx markdownlint-cli2:*)"
+      "Bash(bunx markdownlint-cli2:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
