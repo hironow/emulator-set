@@ -11,7 +11,8 @@
       "Bash(bunx markdownlint-cli2:*)",
       "Bash(git commit:*)",
       "Bash(grep:*)",
-      "Bash(just port-check:*)"
+      "Bash(just port-check:*)",
+      "Bash(just:*)"
     ],
     "deny": [],
     "ask": []
