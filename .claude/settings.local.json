@@ -9,7 +9,9 @@
       "Bash(uv run pytest:*)",
       "Bash(just lint-check:*)",
       "Bash(bunx markdownlint-cli2:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(grep:*)",
+      "Bash(just port-check:*)"
     ],
     "deny": [],
     "ask": []

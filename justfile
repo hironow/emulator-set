@@ -68,6 +68,18 @@ stop:
 check:
     @bash scripts/check-status.sh
 
+# Check port usage before starting emulators
+port-check:
+    #!/usr/bin/env bash
+    echo '🔍 Checking port usage...'
+    for port in 9099 8080 8086 9010 9020 55432 7474 7687 8081 5252 6333 6334 5433 9200 9300; do
+        result=$(witr --port $port --short 2>/dev/null)
+        if [ -n "$result" ]; then
+            echo "⚠️  Port $port: $result"
+        fi
+    done
+    echo '✅ Port check finished.'
+
 # Verify PostgreSQL 18 basics (version, uuidv7 availability)
 pg-verify:
     @bash scripts/verify-postgres18.sh
