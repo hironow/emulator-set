@@ -12,7 +12,10 @@
       "Bash(git commit:*)",
       "Bash(grep:*)",
       "Bash(just port-check:*)",
-      "Bash(just:*)"
+      "Bash(just:*)",
+      "Bash(git submodule:*)",
+      "Bash(ls:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []
