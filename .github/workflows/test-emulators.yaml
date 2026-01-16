@@ -36,15 +36,31 @@ jobs:
       run: |
         uv sync --all-extras --frozen
 
-    - name: Clean up any existing Docker volumes
+    - name: Clean up any existing Docker resources
       run: |
-        # Only clean up if services are already running
-        if docker compose ps -q 2>/dev/null | grep -q .; then
-          echo "Cleaning up existing services and volumes..."
-          docker compose down -v
-        else
-          echo "No existing services to clean up."
-        fi
+        echo "=== Cleaning up Docker resources ==="
+        # Stop and remove all containers from this compose project
+        docker compose down -v --remove-orphans 2>/dev/null || true
+
+        # Kill any containers that might be using our ports
+        for port in 55432 9200 7474 7687 6333 9020 9010 8085 9000 4000; do
+          container_id=$(docker ps -q --filter "publish=$port" 2>/dev/null || true)
+          if [[ -n "$container_id" ]]; then
+            echo "Stopping container using port $port: $container_id"
+            docker stop "$container_id" 2>/dev/null || true
+            docker rm -f "$container_id" 2>/dev/null || true
+          fi
+        done
+
+        # Also check for any processes using key ports (fallback)
+        for port in 55432 9200; do
+          if sudo lsof -i ":$port" -t >/dev/null 2>&1; then
+            echo "Warning: Port $port still in use by non-Docker process"
+            sudo lsof -i ":$port" || true
+          fi
+        done
+
+        echo "Cleanup complete."
 
     - name: Pre-build selected images (incl. Postgres 18)
       run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
