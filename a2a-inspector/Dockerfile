@@ -26,8 +26,14 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /app
 
+# Install uv (no pip required)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+ENV PATH="/root/.local/bin:$PATH"
 ENV UV_PYTHON_PREFER_SYSTEM=1
-RUN pip install --no-cache-dir uv
 
 COPY --from=source /src/repo/pyproject.toml ./
 COPY --from=source /src/repo/uv.lock ./

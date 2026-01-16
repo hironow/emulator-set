@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Export Firebase emulator data if the service is running.
 # Usage: bash scripts/export-firebase-data.sh [service] [export_path]
-#   service: docker-compose service/container name (default: firebase-emulator)
+#   service: docker compose service/container name (default: firebase-emulator)
 #   export_path: path inside container (default: /firebase/data)
 
 SERVICE="${1:-firebase-emulator}"
