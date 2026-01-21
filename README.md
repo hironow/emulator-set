@@ -75,11 +75,29 @@ ports via `.env.local`.
 | A2A Inspector  | `a2a-inspector`      | 8081 → 8080                              | HTTP   | –   |
 | MLflow         | `mlflow-server`      | 5252 → 5000                              | HTTP   | –   |
 | PostgreSQL     | `postgres-18`        | 5433 → 5432 (PostgreSQL)                 | TCP    | ✓   |
+| ES Exporter    | `elasticsearch-exporter` | 9114 → 9114 (Prometheus)            | HTTP   | –   |
+| PG Exporter    | `postgres-exporter`  | 9187 → 9187 (Prometheus)                 | HTTP   | –   |
 
 > Note: Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
 
 CLI availability (✓) means a matching Go-based REPL is included and runnable
 via Docker Compose profiles.
+
+### Prometheus Exporters
+
+The following Prometheus exporters are included for telemetry integration:
+
+| Exporter | Target Service | Metrics Endpoint | Notes |
+|----------|---------------|------------------|-------|
+| `elasticsearch-exporter` | Elasticsearch | `:9114/metrics` | Cluster health, nodes, JVM, indices |
+| `postgres-exporter` | PostgreSQL 18 | `:9187/metrics` | Connections, DB size, QPS, cache hits |
+
+These exporters are scraped by the OTEL Collector in the `telemetry` stack via the shared `shared-otel-net` Docker network. Metrics are visualized in the Grafana "Emulator Metrics" dashboard.
+
+**Native metrics support:**
+
+- **Qdrant**: Native `/metrics` endpoint on port 6333
+- **Neo4j**: Prometheus metrics require Enterprise Edition (Community Edition does not support this feature)
 
 ## Developer Commands
 
