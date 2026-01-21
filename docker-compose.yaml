@@ -350,4 +350,5 @@ volumes:
 
 networks:
   default:
-    name: emulator-network
+    name: shared-otel-net
+    external: true
