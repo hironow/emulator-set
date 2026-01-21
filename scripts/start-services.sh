@@ -22,6 +22,12 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 127
 fi
 
+# Create shared network if it doesn't exist (required for telemetry integration)
+if ! docker network inspect shared-otel-net >/dev/null 2>&1; then
+  echo "Creating shared-otel-net network..."
+  docker network create shared-otel-net
+fi
+
 if [[ "$NO_BUILD" == true ]]; then
   docker compose up -d --no-build
 else
