@@ -13,13 +13,13 @@ services:
       - ./firebase/remoteconfig.template.json:/firebase/remoteconfig.template.json:ro
       - ./firebase/data:/firebase/data
     ports:
-      - "${AUTH_PORT:-9099}:9099"  # Auth
-      - "${FIRESTORE_PORT:-8080}:8080"  # Firestore
-      - "${PUBSUB_PORT:-9399}:9399"  # Pub/Sub
-      - "${STORAGE_PORT:-9199}:9199"  # Storage
-      - "${EVENTARC_PORT:-9299}:9299"  # Eventarc
-      - "${TASKS_PORT:-9499}:9499"  # Tasks
-      - "${FIREBASE_UI_PORT:-4000}:4000"  # UI
+      - "127.0.0.1:${AUTH_PORT:-9099}:9099"  # Auth
+      - "127.0.0.1:${FIRESTORE_PORT:-8080}:8080"  # Firestore
+      - "127.0.0.1:${PUBSUB_PORT:-9399}:9399"  # Pub/Sub
+      - "127.0.0.1:${STORAGE_PORT:-9199}:9199"  # Storage
+      - "127.0.0.1:${EVENTARC_PORT:-9299}:9299"  # Eventarc
+      - "127.0.0.1:${TASKS_PORT:-9499}:9499"  # Tasks
+      - "127.0.0.1:${FIREBASE_UI_PORT:-4000}:4000"  # UI
     environment:
       - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-test-project}
     command: >
@@ -49,7 +49,7 @@ services:
     platform: linux/amd64
     command: ["gcloud", "beta", "emulators", "bigtable", "start", "--host-port=0.0.0.0:8086"]
     ports:
-      - "${BIGTABLE_PORT:-8086}:8086"  # gRPC endpoint
+      - "127.0.0.1:${BIGTABLE_PORT:-8086}:8086"  # gRPC endpoint
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 8086 || exit 1"]
       interval: 30s
@@ -82,8 +82,8 @@ services:
     pull_policy: always
     container_name: spanner-emulator
     ports:
-      - "${SPANNER_GRPC_PORT:-9010}:9010"  # gRPC endpoint
-      - "${SPANNER_REST_PORT:-9020}:9020"  # REST endpoint
+      - "127.0.0.1:${SPANNER_GRPC_PORT:-9010}:9010"  # gRPC endpoint
+      - "127.0.0.1:${SPANNER_REST_PORT:-9020}:9020"  # REST endpoint
     # Health check using built-in TCP check
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9010 || exit 1"]
@@ -108,7 +108,7 @@ services:
       - "-c \"\""
       - "-x"
     ports:
-      - "${PGADAPTER_PORT:-55432}:5432"  # PostgreSQL port (avoid host 5432)
+      - "127.0.0.1:${PGADAPTER_PORT:-55432}:5432"  # PostgreSQL port (avoid host 5432)
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
       interval: 30s
@@ -144,8 +144,8 @@ services:
     image: neo4j:2025-community
     container_name: neo4j-emulator
     ports:
-      - "${NEO4J_HTTP_PORT:-7474}:7474"  # HTTP
-      - "${NEO4J_BOLT_PORT:-7687}:7687"  # Bolt
+      - "127.0.0.1:${NEO4J_HTTP_PORT:-7474}:7474"  # HTTP
+      - "127.0.0.1:${NEO4J_BOLT_PORT:-7687}:7687"  # Bolt
     environment:
       - NEO4J_AUTH=${NEO4J_AUTH:-neo4j/password}
       - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
@@ -193,7 +193,7 @@ services:
     container_name: a2a-inspector
     platform: linux/amd64
     ports:
-      - "${A2A_INSPECTOR_PORT:-8081}:8080"
+      - "127.0.0.1:${A2A_INSPECTOR_PORT:-8081}:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
@@ -207,7 +207,7 @@ services:
     image: ghcr.io/mlflow/mlflow:v3.5.1
     container_name: mlflow-server
     ports:
-      - "${MLFLOW_PORT:-5252}:5000"
+      - "127.0.0.1:${MLFLOW_PORT:-5252}:5000"
     volumes:
       - ./mlflow-data:/mlflow:rw
     command: >
@@ -225,8 +225,8 @@ services:
     image: qdrant/qdrant:latest
     container_name: qdrant-emulator
     ports:
-      - "${QDRANT_REST_PORT:-6333}:6333"  # REST API
-      - "${QDRANT_GRPC_PORT:-6334}:6334"  # gRPC API
+      - "127.0.0.1:${QDRANT_REST_PORT:-6333}:6333"  # REST API
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"  # gRPC API
     environment:
       - QDRANT__LOG_LEVEL=INFO
     volumes:
@@ -265,7 +265,7 @@ services:
       dockerfile: Dockerfile
     container_name: postgres-18
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"  # PostgreSQL port (avoid 5432 conflict with pgAdapter)
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"  # PostgreSQL port (avoid 5432 conflict with pgAdapter)
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
@@ -305,8 +305,8 @@ services:
     image: elasticsearch:9.2.1
     container_name: elasticsearch-emulator
     ports:
-      - "${ELASTICSEARCH_PORT:-9200}:9200"  # REST API
-      - "${ELASTICSEARCH_TRANSPORT_PORT:-9300}:9300"  # Transport
+      - "127.0.0.1:${ELASTICSEARCH_PORT:-9200}:9200"  # REST API
+      - "127.0.0.1:${ELASTICSEARCH_TRANSPORT_PORT:-9300}:9300"  # Transport
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -349,7 +349,7 @@ services:
       - '--es.uri=http://elasticsearch:9200'
       - '--es.all'
     ports:
-      - "${ELASTICSEARCH_EXPORTER_PORT:-9114}:9114"
+      - "127.0.0.1:${ELASTICSEARCH_EXPORTER_PORT:-9114}:9114"
     depends_on:
       - elasticsearch
     healthcheck:
@@ -367,7 +367,7 @@ services:
     environment:
       - DATA_SOURCE_NAME=postgresql://postgres:password@postgres:5432/postgres?sslmode=disable
     ports:
-      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+      - "127.0.0.1:${POSTGRES_EXPORTER_PORT:-9187}:9187"
     depends_on:
       - postgres
     healthcheck:
