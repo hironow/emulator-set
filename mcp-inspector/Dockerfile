@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.19
+# syntax=docker/dockerfile:1.20
 
 ARG MCP_INSPECTOR_REPO=https://github.com/modelcontextprotocol/inspector.git
 ARG MCP_INSPECTOR_REF=main
