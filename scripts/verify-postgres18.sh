@@ -7,39 +7,29 @@ set -euo pipefail
 # - Attempts a virtual generated column; falls back to stored if not supported
 # Usage: bash scripts/verify-postgres18.sh
 
+# ─── Configuration ───
 SERVICE=postgres
 DB=postgres
 USER=postgres
 
-need() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "❌ Required command not found: $1" >&2
-    exit 127
-  fi
-}
-
-need docker
-
-if ! docker compose version >/dev/null 2>&1; then
-  echo "❌ docker compose not available" >&2
-  exit 127
-fi
+# ─── Dependency checks ───
+command -v docker >/dev/null 2>&1 || { echo "❌ docker not found" >&2; exit 127; }
+docker compose version >/dev/null 2>&1 || { echo "❌ docker compose not available" >&2; exit 127; }
 
 echo "🔎 Verifying PostgreSQL 18 features (service: ${SERVICE})"
 
 # Ensure service is running
-if ! docker compose ps --quiet "${SERVICE}" | grep -q .; then
+docker compose ps --quiet "$SERVICE" 2>/dev/null | grep -q . || {
   echo "❌ Service '${SERVICE}' is not running. Start with: just up or just start" >&2
   exit 2
-fi
+}
 
-psql_exec() {
-  local sql="$1"
-  docker compose exec -T "${SERVICE}" psql -U "${USER}" -d "${DB}" -Atqc "$sql"
+psql_cmd() {
+  docker compose exec -T "$SERVICE" psql -U "$USER" -d "$DB" -Atqc "$1"
 }
 
 # Version check
-version=$(psql_exec "show server_version;")
+version=$(psql_cmd "show server_version;")
 echo "• server_version: ${version}"
 major=${version%%.*}
 if [[ "$major" == "18" ]]; then
@@ -49,10 +39,10 @@ else
 fi
 
 # uuidv7() presence + sample value
-has_uuidv7=$(psql_exec "select exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname='uuidv7' and n.nspname='pg_catalog');")
+has_uuidv7=$(psql_cmd "select exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname='uuidv7' and n.nspname='pg_catalog');")
 if [[ "$has_uuidv7" == "t" ]]; then
   echo "• uuidv7(): present"
-  val=$(psql_exec "select uuidv7();") || true
+  val=$(psql_cmd "select uuidv7();" || true)
   if [[ -n "${val:-}" ]]; then
     echo "  ✅ uuidv7() sample: ${val}"
   else
@@ -62,19 +52,20 @@ else
   echo "• uuidv7(): not found"
 fi
 
-# Generated column (try virtual, fallback to stored)
+# Generated column test (try virtual, fallback to stored)
 echo "• Generated column test"
-psql_exec "drop table if exists pg18_gen_test;" >/dev/null || true
-if docker compose exec -T "${SERVICE}" psql -U "${USER}" -d "${DB}" -v ON_ERROR_STOP=1 -c "create table pg18_gen_test(x int, y int generated always as (x*2) virtual);" >/dev/null 2>&1; then
+psql_cmd "drop table if exists pg18_gen_test;" >/dev/null || true
+if docker compose exec -T "$SERVICE" psql -U "$USER" -d "$DB" -v ON_ERROR_STOP=1 \
+    -c "create table pg18_gen_test(x int, y int generated always as (x*2) virtual);" >/dev/null 2>&1; then
   echo "  ✅ Virtual generated column supported"
 else
-  # Fallback to stored (always supported historically)
-  docker compose exec -T "${SERVICE}" psql -U "${USER}" -d "${DB}" -v ON_ERROR_STOP=1 -c "create table pg18_gen_test(x int, y int generated always as (x*2) stored);" >/dev/null
+  docker compose exec -T "$SERVICE" psql -U "$USER" -d "$DB" -v ON_ERROR_STOP=1 \
+    -c "create table pg18_gen_test(x int, y int generated always as (x*2) stored);" >/dev/null
   echo "  ⚠️  Virtual not available; created STORED generated column"
 fi
-docker compose exec -T "${SERVICE}" psql -U "${USER}" -d "${DB}" -v ON_ERROR_STOP=1 -c "insert into pg18_gen_test(x) values (5);" >/dev/null
-pair=$(psql_exec "select x||'->'||y from pg18_gen_test limit 1;")
+docker compose exec -T "$SERVICE" psql -U "$USER" -d "$DB" -v ON_ERROR_STOP=1 \
+  -c "insert into pg18_gen_test(x) values (5);" >/dev/null
+pair=$(psql_cmd "select x||'->'||y from pg18_gen_test limit 1;")
 echo "  ▶︎ sample row: ${pair}"
 
 echo "✅ Verification complete"
-

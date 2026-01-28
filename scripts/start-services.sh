@@ -12,27 +12,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "docker not found" >&2
-  exit 127
-fi
+# ─── Dependency checks ───
+command -v docker >/dev/null 2>&1 || { echo "docker not found" >&2; exit 127; }
+docker compose version >/dev/null 2>&1 || { echo "docker compose not available" >&2; exit 127; }
 
-if ! docker compose version >/dev/null 2>&1; then
-  echo "docker compose not available" >&2
-  exit 127
-fi
-
-# Create shared network if it doesn't exist (required for telemetry integration)
-if ! docker network inspect shared-otel-net >/dev/null 2>&1; then
+# Create shared network if needed (for telemetry integration)
+docker network inspect shared-otel-net >/dev/null 2>&1 || {
   echo "Creating shared-otel-net network..."
   docker network create shared-otel-net
-fi
+}
 
-if [[ "$NO_BUILD" == true ]]; then
+if $NO_BUILD; then
   docker compose up -d --no-build
 else
   docker compose up -d
 fi
 
 echo "Services started (detached)."
-

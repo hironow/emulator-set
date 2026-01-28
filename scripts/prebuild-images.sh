@@ -4,24 +4,15 @@ set -euo pipefail
 # Pre-build selected compose images to speed up startup and CI waits.
 # Usage: bash scripts/prebuild-images.sh [services...]
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "docker not found" >&2
-  exit 127
-fi
+# ─── Dependency checks ───
+command -v docker >/dev/null 2>&1 || { echo "docker not found" >&2; exit 127; }
+docker compose version >/dev/null 2>&1 || { echo "docker compose not available" >&2; exit 127; }
 
-if ! docker compose version >/dev/null 2>&1; then
-  echo "docker compose not available" >&2
-  exit 127
-fi
-
-services=("a2a-inspector" "firebase-emulator")
-if [[ $# -gt 0 ]]; then
-  services=("$@")
-fi
+# ─── Default services to build ───
+declare -a services=(a2a-inspector firebase-emulator mcp-inspector)
+(( $# > 0 )) && services=("$@")
 
 echo "Pre-building images: ${services[*]}"
-
-# Build each service, allowing per-service platform overrides where needed
 for svc in "${services[@]}"; do
   echo "▶️  Building $svc"
   docker compose build "$svc"

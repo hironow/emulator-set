@@ -3,8 +3,9 @@
 Local, reproducible emulator stack for app development and testing.
 
 Includes Firebase (Auth / Firestore / Storage / Pub/Sub / Eventarc / Tasks),
-Spanner (+ pgAdapter), Neo4j, Elasticsearch, Qdrant, and A2A Inspector. Handy
-Go-based CLIs and just tasks make day‑to‑day work fast and predictable.
+Spanner (+ pgAdapter), Neo4j, Elasticsearch, Qdrant, A2A Inspector, and MCP
+Inspector. Handy Go-based CLIs and just tasks make day‑to‑day work fast and
+predictable.
 
 ## Table of Contents
 
@@ -73,12 +74,15 @@ ports via `.env.local`.
 | Elasticsearch  | `elasticsearch-emulator` | 9200 → 9200 (REST), 9300 → 9300     | HTTP   | ✓   |
 | Qdrant         | `qdrant-emulator`    | 6333 → 6333 (REST), 6334 → 6334 (gRPC)   | HTTP   | ✓   |
 | A2A Inspector  | `a2a-inspector`      | 8081 → 8080                              | HTTP   | –   |
+| MCP Inspector  | `mcp-inspector`      | 6274 → 6274                              | HTTP   | –   |
 | MLflow         | `mlflow-server`      | 5252 → 5000                              | HTTP   | –   |
 | PostgreSQL     | `postgres-18`        | 5433 → 5432 (PostgreSQL)                 | TCP    | ✓   |
 | ES Exporter    | `elasticsearch-exporter` | 9114 → 9114 (Prometheus)            | HTTP   | –   |
 | PG Exporter    | `postgres-exporter`  | 9187 → 9187 (Prometheus)                 | HTTP   | –   |
 
 > Note: Set `A2A_INSPECTOR_REPO=<git-url>` and/or `A2A_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream inspector checkout. The image builds via the local `a2a-inspector/Dockerfile`, which fetches the repository and runs on Python 3.12 to satisfy its runtime requirement.
+
+> Note: Set `MCP_INSPECTOR_REPO=<git-url>` and/or `MCP_INSPECTOR_REF=<git-ref>` before `just start` to pin the upstream MCP Inspector checkout. The image builds via the local `mcp-inspector/Dockerfile`, which fetches the repository and runs on Node.js 24.
 
 CLI availability (✓) means a matching Go-based REPL is included and runnable
 via Docker Compose profiles.
@@ -209,6 +213,7 @@ export MLFLOW_TRACKING_URI=http://localhost:5252
 - Elasticsearch: REST `localhost:9200`
 - Qdrant: REST `localhost:6333`
 - A2A Inspector: `http://localhost:8081`
+- MCP Inspector: `http://localhost:6274`
 - MLflow UI: `http://localhost:5252`
 - PostgreSQL: host `localhost`, port `5433`, user `postgres`, db `postgres`
 

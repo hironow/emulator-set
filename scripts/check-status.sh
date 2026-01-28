@@ -5,96 +5,67 @@ set -euo pipefail
 # Idempotent, read-only.
 # Usage: bash scripts/check-status.sh
 
-# Move to repo root (script lives in scripts/)
+# ─── Configurable ports (override via environment) ───
+: "${FIREBASE_UI_PORT:=4000}"
+: "${BIGTABLE_PORT:=8086}"
+: "${SPANNER_GRPC_PORT:=9010}"
+: "${PGADAPTER_PORT:=55432}"
+: "${NEO4J_HTTP_PORT:=7474}"
+: "${ELASTICSEARCH_PORT:=9200}"
+: "${QDRANT_REST_PORT:=6333}"
+: "${A2A_INSPECTOR_PORT:=8081}"
+: "${MCP_INSPECTOR_PORT:=6274}"
+: "${MLFLOW_PORT:=5252}"
+: "${POSTGRES_PORT:=5433}"
+
+# Move to repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}/.."
 
-need() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "❌ Required command not found: $1" >&2
-    exit 127
-  fi
-}
+# ─── Dependency checks ───
+command -v docker >/dev/null 2>&1 || { echo "❌ docker not found" >&2; exit 127; }
+docker compose version >/dev/null 2>&1 || { echo "❌ docker compose not available" >&2; exit 127; }
+command -v curl >/dev/null 2>&1 || { echo "❌ curl not found" >&2; exit 127; }
 
-need docker
-
-if ! docker compose version >/dev/null 2>&1; then
-  echo "❌ docker compose not available" >&2
-  exit 127
-fi
-
-if ! command -v curl >/dev/null 2>&1; then
-  echo "❌ curl not found (needed for HTTP checks)" >&2
-  exit 127
-fi
-
+# ─── Helper functions ───
 container_status() {
-  local name="$1"
-  # Print container status line if exists, else "not found"
   local out
-  out=$(docker ps -a --filter name="^/${name}$" --format '{{.Status}}' || true)
-  if [[ -z "$out" ]]; then
-    echo "not found"
-  else
-    echo "$out"
-  fi
+  out=$(docker ps -a --filter name="^/${1}$" --format '{{.Status}}' 2>/dev/null || true)
+  echo "${out:-not found}"
 }
 
 check_http() {
-  local url="$1"
   local code
-  code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
-  if [[ "$code" =~ ^2|3 ]]; then
-    echo "✅ HTTP ${code}"
-  elif [[ "$code" == "000" ]]; then
-    echo "❌ no response"
-  else
-    echo "⚠️  HTTP ${code}"
-  fi
+  code=$(curl -s -o /dev/null -w "%{http_code}" "$1" 2>/dev/null || echo "000")
+  case "$code" in
+    2*|3*) echo "✅ HTTP ${code}" ;;
+    000)   echo "❌ no response" ;;
+    *)     echo "⚠️  HTTP ${code}" ;;
+  esac
 }
 
 check_tcp() {
-  local host="$1"; shift
-  local port="$1"; shift
-  if command -v nc >/dev/null 2>&1; then
-    if nc -z "$host" "$port" >/dev/null 2>&1; then
-      echo "✅ open"
-    else
-      echo "❌ closed"
-    fi
+  local host="${1%:*}" port="${1#*:}"
+  if nc -z "$host" "$port" 2>/dev/null || (echo >/dev/tcp/"$host"/"$port") 2>/dev/null; then
+    echo "✅ open"
   else
-    # Fallback: bash /dev/tcp
-    if (echo > /dev/tcp/${host}/${port}) >/dev/null 2>&1; then
-      echo "✅ open"
-    else
-      echo "❌ closed"
-    fi
+    echo "❌ closed"
   fi
 }
 
 report() {
-  local label="$1"; shift
-  local container="$1"; shift
-  local mode="$1"; shift
-  local target="$1"; shift
-
-  # Container status
-  local cstat
+  local label="$1" container="$2" mode="$3" target="$4"
+  local cstat estat
   cstat=$(container_status "$container")
-
-  # Endpoint check
-  local estat
   if [[ "$mode" == http ]]; then
     estat=$(check_http "$target")
   else
-    local host port
-    host="${target%:*}"; port="${target#*:}"
-    estat=$(check_tcp "$host" "$port")
+    estat=$(check_tcp "$target")
   fi
-
   printf "%-18s | %-28s | %s\n" "$label" "$cstat" "$estat"
 }
 
+# ─── Output ───
 echo "📦 Docker Compose services"
 docker compose ps || true
 echo
@@ -102,33 +73,17 @@ echo "🔎 Emulator endpoints"
 printf "%-18s | %-28s | %s\n" "Service" "Container status" "Endpoint check"
 printf "%s\n" "------------------+------------------------------+-------------------------"
 
-# Firebase (UI)
-report "Firebase UI"       firebase-emulator      http  "http://localhost:4000"
-
-# Bigtable
-report "Bigtable gRPC"     bigtable-emulator      tcp   "localhost:8086"
-
-# Spanner / pgAdapter
-report "Spanner gRPC"      spanner-emulator       tcp   "localhost:9010"
-report "pgAdapter"         pgadapter-emulator     tcp   "localhost:${PGADAPTER_PORT:-55432}"
-
-# Neo4j
-report "Neo4j HTTP"        neo4j-emulator         http  "http://localhost:7474"
-
-# Elasticsearch
-report "Elasticsearch"     elasticsearch-emulator http  "http://localhost:9200/_cluster/health"
-
-# Qdrant
-report "Qdrant"            qdrant-emulator        http  "http://localhost:6333/healthz"
-
-# A2A Inspector
-report "A2A Inspector"     a2a-inspector          http  "http://localhost:8081"
-
-# MLflow
-report "MLflow"            mlflow-server          http  "http://localhost:5252/"
-
-# PostgreSQL (pure)
-report "PostgreSQL 18"     postgres-18            tcp   "localhost:${POSTGRES_PORT:-5433}"
+report "Firebase UI"       firebase-emulator      http  "http://localhost:${FIREBASE_UI_PORT}"
+report "Bigtable gRPC"     bigtable-emulator      tcp   "localhost:${BIGTABLE_PORT}"
+report "Spanner gRPC"      spanner-emulator       tcp   "localhost:${SPANNER_GRPC_PORT}"
+report "pgAdapter"         pgadapter-emulator     tcp   "localhost:${PGADAPTER_PORT}"
+report "Neo4j HTTP"        neo4j-emulator         http  "http://localhost:${NEO4J_HTTP_PORT}"
+report "Elasticsearch"     elasticsearch-emulator http  "http://localhost:${ELASTICSEARCH_PORT}/_cluster/health"
+report "Qdrant"            qdrant-emulator        http  "http://localhost:${QDRANT_REST_PORT}/healthz"
+report "A2A Inspector"     a2a-inspector          http  "http://localhost:${A2A_INSPECTOR_PORT}"
+report "MCP Inspector"     mcp-inspector          http  "http://localhost:${MCP_INSPECTOR_PORT}"
+report "MLflow"            mlflow-server          http  "http://localhost:${MLFLOW_PORT}/"
+report "PostgreSQL 18"     postgres-18            tcp   "localhost:${POSTGRES_PORT}"
 
 echo
 echo "Done."

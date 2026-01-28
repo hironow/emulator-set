@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run E2E tests and tee to e2e.log
+# Run E2E tests (sequential due to Docker client state management).
+# Usage: bash scripts/run-tests-e2e.sh
 
-if ! command -v uv >/dev/null 2>&1; then
-  echo "uv not found. Install: https://github.com/astral-sh/uv" >&2
-  exit 127
-fi
+command -v uv >/dev/null 2>&1 || { echo "uv not found. Install: https://github.com/astral-sh/uv" >&2; exit 127; }
 
 echo "Running E2E tests"
-# E2E tests run sequentially due to Docker client state management
-# Parallel execution (-n auto) causes Docker API 404 errors
 uv run pytest tests/e2e -v -m e2e -ra
 echo "Done."
-

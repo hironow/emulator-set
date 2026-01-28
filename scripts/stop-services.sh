@@ -4,17 +4,11 @@ set -euo pipefail
 # Stop emulator services gracefully.
 # Usage: bash scripts/stop-services.sh
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "docker not found. Nothing to stop." >&2
-  exit 0
-fi
+# ─── Dependency checks (soft fail) ───
+command -v docker >/dev/null 2>&1 || { echo "docker not found. Nothing to stop." >&2; exit 0; }
+docker compose version >/dev/null 2>&1 || { echo "docker compose not available. Nothing to stop." >&2; exit 0; }
 
-if ! docker compose version >/dev/null 2>&1; then
-  echo "docker compose not available. Nothing to stop." >&2
-  exit 0
-fi
-
-# Show running containers (if any)
+# Show running containers if any
 if docker compose ps --quiet 2>/dev/null | grep -q .; then
   echo "📦 Currently running containers:"
   docker compose ps

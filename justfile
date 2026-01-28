@@ -31,7 +31,7 @@ test-e2e:
     @bash scripts/run-tests-e2e.sh
 
 # Pre-build selected images
-prebuild images='a2a-inspector firebase-emulator postgres':
+prebuild images='a2a-inspector firebase-emulator mcp-inspector postgres':
     @bash scripts/prebuild-images.sh {{images}}
 
 # Start services (detached)
@@ -43,8 +43,8 @@ up nobuild='no':
     fi
 
 # Wait for services
-wait default='30' a2a='60' postgres='60':
-    @bash scripts/wait-for-services.sh --default {{default}} --a2a {{a2a}} --postgres {{postgres}}
+wait default='30' a2a='60' mcp='60' postgres='60':
+    @bash scripts/wait-for-services.sh --default {{default}} --a2a {{a2a}} --mcp {{mcp}} --postgres {{postgres}}
 
 # Clean up volumes (use with caution - deletes all data)
 clean-volumes:
@@ -56,9 +56,9 @@ clean-volumes:
 start:
     @echo '🧹 Cleaning up old volumes...'
     @docker compose down -v || true
-    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
+    @bash scripts/prebuild-images.sh a2a-inspector firebase-emulator mcp-inspector postgres
     @bash scripts/start-services.sh
-    @bash scripts/wait-for-services.sh --default 30 --a2a 60 --postgres 60
+    @bash scripts/wait-for-services.sh --default 30 --a2a 60 --mcp 60 --postgres 60
 
 # Stop emulators (with Firebase export)
 stop:
@@ -72,7 +72,7 @@ check:
 port-check:
     #!/usr/bin/env bash
     echo '🔍 Checking port usage...'
-    for port in 9099 8080 8086 9010 9020 55432 7474 7687 8081 5252 6333 6334 5433 9200 9300; do
+    for port in 9099 8080 8086 9010 9020 55432 7474 7687 8081 6274 5252 6333 6334 5433 9200 9300; do
         result=$(witr --port $port --short 2>/dev/null)
         if [ -n "$result" ]; then
             echo "⚠️  Port $port: $result"
