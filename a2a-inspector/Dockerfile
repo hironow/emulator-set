@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.19
+# syntax=docker/dockerfile:1.20
 
 ARG A2A_INSPECTOR_REPO=https://github.com/a2aproject/a2a-inspector.git
 ARG A2A_INSPECTOR_REF=main
@@ -23,7 +23,7 @@ RUN npm rebuild esbuild
 RUN npm run build
 
 # Stage 2: assemble runtime image
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /app
 
 # Install uv (no pip required)
