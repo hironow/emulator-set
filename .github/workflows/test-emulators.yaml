@@ -22,15 +22,15 @@ jobs:
     timeout-minutes: 30
     
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies (uv sync --frozen)
       run: |
@@ -63,7 +63,7 @@ jobs:
         echo "Cleanup complete."
 
     - name: Pre-build selected images (incl. Postgres 18)
-      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
+      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator mcp-inspector postgres
 
     - name: Start Docker Compose services
       run: bash scripts/start-services.sh --no-build
