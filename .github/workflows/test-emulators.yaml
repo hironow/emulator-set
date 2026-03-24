@@ -63,7 +63,7 @@ jobs:
         echo "Cleanup complete."
 
     - name: Pre-build selected images (incl. Postgres 18)
-      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator postgres
+      run: bash scripts/prebuild-images.sh a2a-inspector firebase-emulator mcp-inspector postgres
 
     - name: Start Docker Compose services
       run: bash scripts/start-services.sh --no-build
