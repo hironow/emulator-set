@@ -9,8 +9,8 @@ def test_a2a_inspector_dockerfile_uses_python_312() -> None:
 
 
 def test_docker_compose_uses_local_a2a_inspector_context() -> None:
-    compose_text = Path("docker-compose.yaml").read_text()
+    compose_text = Path("compose.yaml").read_text()
     assert "context: ./a2a-inspector" in compose_text, (
-        "docker-compose.yaml should build a2a-inspector from the local Dockerfile "
+        "compose.yaml should build a2a-inspector from the local Dockerfile "
         "to ensure Python 3.12 is used"
     )
